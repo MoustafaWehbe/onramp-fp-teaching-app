@@ -55,12 +55,6 @@ cp .env.example .env
 cd packages/api
 npx sequelize-cli db:migrate
 npx sequelize-cli db:seed:all   # optional sample data
-
-# create a new migration
-npx sequelize-cli migration:generate --name create-restaurants
-# then edit the generated file in packages/api/src/migrations/ to define the schema changes
-# then apply the migration
-npx sequelize-cli db:migrate
 ```
 
 ### 6. Start development servers
