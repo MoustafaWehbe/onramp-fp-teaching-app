@@ -38,6 +38,12 @@ module.exports = {
         defaultValue: Sequelize.NOW,
       },
     });
+
+    await queryInterface.addConstraint("milestone_lessons", {
+      fields: ["milestone_id", "lesson_id"],
+      type: "unique",
+      name: "milestone_lessons_milestone_id_lesson_id_key",
+    });
   },
 
   async down(queryInterface) {

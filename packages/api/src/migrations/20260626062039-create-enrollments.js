@@ -43,6 +43,12 @@ module.exports = {
         defaultValue: Sequelize.NOW,
       },
     });
+
+    await queryInterface.addConstraint("enrollments", {
+      fields: ["student_id", "course_id"],
+      type: "unique",
+      name: "enrollments_student_id_course_id_key",
+    });
   },
 
   async down(queryInterface) {

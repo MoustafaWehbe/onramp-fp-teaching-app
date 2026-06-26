@@ -33,6 +33,7 @@ module.exports = {
       },
       is_published: {
         type: Sequelize.BOOLEAN,
+        allowNull: false,
         defaultValue: false,
       },
       created_at: {

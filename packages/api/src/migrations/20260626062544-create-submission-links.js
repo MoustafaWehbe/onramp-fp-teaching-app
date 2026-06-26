@@ -19,7 +19,7 @@ module.exports = {
         onDelete: "CASCADE",
       },
       url: {
-        type: Sequelize.STRING,
+        type: Sequelize.TEXT,
         allowNull: false,
       },
       type: {
@@ -41,5 +41,8 @@ module.exports = {
 
   async down(queryInterface) {
     await queryInterface.dropTable("submission_links");
+    await queryInterface.sequelize.query(
+      'DROP TYPE IF EXISTS "enum_submission_links_type";'
+    );
   },
 };
