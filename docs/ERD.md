@@ -69,6 +69,9 @@ Table milestone_lessons {
   id uuid [pk]
   milestone_id uuid [ref: > milestones.id]
   lesson_id uuid [ref: > lessons.id]
+  indexes {
+    (milestone_id, lesson_id) [unique]
+  }
   created_at timestamp
   updated_at timestamp
 }
@@ -77,6 +80,9 @@ Table enrollments {
   id uuid [pk]
   student_id uuid [ref: > users.id]
   course_id uuid [ref: > courses.id]
+  indexes {
+    (student_id, course_id) [unique]
+  }
   enrolled_at timestamp
   created_at timestamp
   updated_at timestamp
