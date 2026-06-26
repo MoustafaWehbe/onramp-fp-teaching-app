@@ -6,9 +6,10 @@ export function NotFound() {
     <div className="flex h-screen flex-col items-center justify-center gap-4">
       <h1 className="text-6xl font-bold text-muted-foreground">404</h1>
       <p className="text-xl">Page not found</p>
-      <Button asChild variant="outline">
-        <Link to="/">Go home</Link>
-      </Button>
+
+      <Link to="/">
+        <Button variant="outline">Go home</Button>
+      </Link>
     </div>
   );
 }
