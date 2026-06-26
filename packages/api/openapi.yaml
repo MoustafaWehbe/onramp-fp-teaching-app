@@ -343,12 +343,15 @@ components:
           example: submitted
         score:
           type: integer
+          minimum: 0
+          maximum: 100
           example: 85
         feedback:
           type: string
           example: Great work! Clean code and well structured.
         links:
           type: array
+          maxItems: 10
           items:
             $ref: '#/components/schemas/SubmissionLink'
         submittedAt:
@@ -370,6 +373,8 @@ components:
       properties:
         links:
           type: array
+          minItems: 1
+          maxItems: 10
           items:
             $ref: '#/components/schemas/SubmissionLinkBody'
 
@@ -379,6 +384,8 @@ components:
       properties:
         score:
           type: integer
+          minimum: 0
+          maximum: 100
           example: 85
         feedback:
           type: string
@@ -615,6 +622,12 @@ paths:
                 properties:
                   data:
                     $ref: "#/components/schemas/Course"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "403":
           description: Forbidden - instructor only
           content:
@@ -646,6 +659,12 @@ paths:
                 properties:
                   data:
                     $ref: "#/components/schemas/Course"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Course not found
           content:
@@ -681,6 +700,24 @@ paths:
                 properties:
                   data:
                     $ref: "#/components/schemas/Course"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - instructor only
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Course not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     delete:
       tags: [Courses]
       summary: Delete a course (instructor only)
@@ -701,6 +738,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MessageResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - instructor only
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Course not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   # ─── Enrollments ─────────────────────────────────────────────────────────────
   /enrollments:
@@ -728,6 +783,12 @@ paths:
                     $ref: "#/components/schemas/Enrollment"
         "400":
           description: Invalid enrollment code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
           content:
             application/json:
               schema:
@@ -760,6 +821,12 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/Module"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     post:
       tags: [Modules]
       summary: Create a module (instructor only)
@@ -789,6 +856,18 @@ paths:
                 properties:
                   data:
                     $ref: "#/components/schemas/Module"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - instructor only
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   # ─── Lessons ─────────────────────────────────────────────────────────────────
   /modules/{moduleId}/lessons:
@@ -817,6 +896,12 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/Lesson"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     post:
       tags: [Lessons]
       summary: Create a lesson (instructor only)
@@ -846,6 +931,18 @@ paths:
                 properties:
                   data:
                     $ref: "#/components/schemas/Lesson"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - instructor only
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   # ─── Milestones ──────────────────────────────────────────────────────────────
   /modules/{moduleId}/milestones:
@@ -874,6 +971,12 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/Milestone"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     post:
       tags: [Milestones]
       summary: Create a milestone (instructor only)
@@ -903,6 +1006,18 @@ paths:
                 properties:
                   data:
                     $ref: "#/components/schemas/Milestone"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - instructor only
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   # ─── Submissions ─────────────────────────────────────────────────────────────
   /milestones/{milestoneId}/submissions:
@@ -931,6 +1046,12 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/Submission"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     post:
       tags: [Submissions]
       summary: Submit a milestone (student only)
@@ -960,6 +1081,12 @@ paths:
                 properties:
                   data:
                     $ref: "#/components/schemas/Submission"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /submissions/{id}/grade:
     post:
@@ -991,6 +1118,12 @@ paths:
                 properties:
                   data:
                     $ref: "#/components/schemas/Submission"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "403":
           description: Forbidden - instructor only
           content:
