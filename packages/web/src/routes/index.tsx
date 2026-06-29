@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
+import { RoleProtectedRoute } from "./RoleProtectedRoute";
 import { AppLayout } from "../layouts/AppLayout";
 import { AuthLayout } from "../layouts/AuthLayout";
 import { Login } from "../pages/auth/Login";
@@ -39,10 +40,16 @@ export function AppRoutes() {
           <Route path="/grades" element={<Grades />} />
 
           <Route
-            path="/instructor/dashboard"
-            element={<InstructorDashboard />}
-          />
-          <Route path="/instructor/courses" element={<InstructorCourses />} />
+            element={
+              <RoleProtectedRoute allowedRoles={["instructor", "admin"]} />
+            }
+          >
+            <Route
+              path="/instructor/dashboard"
+              element={<InstructorDashboard />}
+            />
+            <Route path="/instructor/courses" element={<InstructorCourses />} />
+          </Route>
 
           <Route path="/settings" element={<Settings />} />
         </Route>
