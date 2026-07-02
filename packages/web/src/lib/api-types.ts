@@ -95,6 +95,166 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all courses (instructor sees own, student sees enrolled) */
+        get: operations["getCourses"];
+        put?: never;
+        /** Create a new course (instructor only) */
+        post: operations["createCourse"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/courses/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a course by ID */
+        get: operations["getCourse"];
+        /** Update a course (instructor only) */
+        put: operations["updateCourse"];
+        post?: never;
+        /** Delete a course (instructor only) */
+        delete: operations["deleteCourse"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/enrollments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Enroll in a course using enrollment code (student only) */
+        post: operations["enroll"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/courses/{courseId}/modules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all modules for a course */
+        get: operations["getModules"];
+        put?: never;
+        /** Create a module (instructor only) */
+        post: operations["createModule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/modules/{moduleId}/lessons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all lessons for a module */
+        get: operations["getLessons"];
+        put?: never;
+        /** Create a lesson (instructor only) */
+        post: operations["createLesson"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/modules/{moduleId}/milestones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all milestones for a module */
+        get: operations["getMilestones"];
+        put?: never;
+        /** Create a milestone (instructor only) */
+        post: operations["createMilestone"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/milestones/{milestoneId}/submissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get submissions for a milestone (instructor sees all, student sees own) */
+        get: operations["getSubmissions"];
+        put?: never;
+        /** Submit a milestone (student only) */
+        post: operations["createSubmission"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/submissions/{id}/grade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Grade a submission (instructor only) */
+        post: operations["gradeSubmission"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/my/grades": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get current student gradebook */
+        get: operations["getMyGrades"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -112,6 +272,11 @@ export interface components {
             password: string;
             /** @example Jane Doe */
             name: string;
+            /**
+             * @example student
+             * @enum {string}
+             */
+            role: "instructor" | "student";
         };
         LoginBody: {
             /**
@@ -136,10 +301,10 @@ export interface components {
             /** @example Jane Doe */
             name?: string;
             /**
-             * @example user
+             * @example student
              * @enum {string}
              */
-            role?: "user" | "admin";
+            role?: "instructor" | "student";
             /**
              * Format: date-time
              * @example 2024-01-01T00:00:00.000Z
@@ -150,6 +315,187 @@ export interface components {
              * @example 2024-01-01T00:00:00.000Z
              */
             updatedAt?: string;
+        };
+        Course: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            instructorId?: string;
+            /** @example Full Stack Bootcamp */
+            title?: string;
+            /** @example A complete bootcamp covering frontend and backend */
+            description?: string;
+            /** @example ABC123 */
+            enrollmentCode?: string;
+            /** @example true */
+            isPublished?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        CreateCourseBody: {
+            /** @example Full Stack Bootcamp */
+            title: string;
+            /** @example A complete bootcamp */
+            description?: string;
+            /** @example false */
+            isPublished?: boolean;
+        };
+        Module: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            courseId?: string;
+            /** @example Frontend Module */
+            title?: string;
+            /** @example 1 */
+            order?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        CreateModuleBody: {
+            /** @example Frontend Module */
+            title: string;
+            /** @example 1 */
+            order?: number;
+        };
+        Lesson: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            moduleId?: string;
+            /** @example HTML Basics */
+            title?: string;
+            /**
+             * @example # HTML Basics
+             *
+             *     Learn the fundamentals of HTML...
+             */
+            content?: string;
+            /** @example https://youtube.com/embed/xyz */
+            videoUrl?: string;
+            /** @example https://github.com/org/starter-repo */
+            starterCodeUrl?: string;
+            /** @example 1 */
+            order?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        CreateLessonBody: {
+            /** @example HTML Basics */
+            title: string;
+            content?: string;
+            videoUrl?: string;
+            starterCodeUrl?: string;
+            order?: number;
+        };
+        Milestone: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            moduleId?: string;
+            /** @example Build and Deploy a Responsive Landing Page */
+            title?: string;
+            /** @example Build a responsive landing page using HTML, CSS, and Flexbox */
+            instructions?: string;
+            /** @example Page must be responsive and deployed on Vercel */
+            acceptanceCriteria?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        CreateMilestoneBody: {
+            /** @example Build and Deploy a Responsive Landing Page */
+            title: string;
+            instructions?: string;
+            acceptanceCriteria?: string;
+        };
+        Enrollment: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            studentId?: string;
+            /** Format: uuid */
+            courseId?: string;
+            /** Format: date-time */
+            enrolledAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        EnrollBody: {
+            /** @example ABC123 */
+            enrollmentCode: string;
+        };
+        SubmissionLink: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            submissionId?: string;
+            /** @example https://github.com/student/project */
+            url?: string;
+            /**
+             * @example github
+             * @enum {string}
+             */
+            type?: "github" | "loom" | "deployment" | "other";
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        SubmissionLinkBody: {
+            /** @example https://github.com/student/project */
+            url: string;
+            /**
+             * @example github
+             * @enum {string}
+             */
+            type: "github" | "loom" | "deployment" | "other";
+        };
+        Submission: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            milestoneId?: string;
+            /** Format: uuid */
+            studentId?: string;
+            /** Format: uuid */
+            gradedBy?: string;
+            /**
+             * @example submitted
+             * @enum {string}
+             */
+            status?: "draft" | "submitted" | "graded";
+            /** @example 85 */
+            score?: number;
+            /** @example Great work! Clean code and well structured. */
+            feedback?: string;
+            links?: components["schemas"]["SubmissionLink"][];
+            /** Format: date-time */
+            submittedAt?: string;
+            /** Format: date-time */
+            gradedAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        CreateSubmissionBody: {
+            links: components["schemas"]["SubmissionLinkBody"][];
+        };
+        GradeSubmissionBody: {
+            /** @example 85 */
+            score: number;
+            /** @example Great work! */
+            feedback?: string;
         };
         ErrorResponse: {
             /** @example Invalid credentials */
@@ -346,6 +692,466 @@ export interface operations {
                 content: {
                     "application/json": {
                         data?: components["schemas"]["User"];
+                    };
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getCourses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of courses */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Course"][];
+                    };
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    createCourse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCourseBody"];
+            };
+        };
+        responses: {
+            /** @description Course created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Course"];
+                    };
+                };
+            };
+            /** @description Forbidden - instructor only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getCourse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Course details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Course"];
+                    };
+                };
+            };
+            /** @description Course not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    updateCourse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCourseBody"];
+            };
+        };
+        responses: {
+            /** @description Course updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Course"];
+                    };
+                };
+            };
+        };
+    };
+    deleteCourse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Course deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+        };
+    };
+    enroll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnrollBody"];
+            };
+        };
+        responses: {
+            /** @description Enrolled successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Enrollment"];
+                    };
+                };
+            };
+            /** @description Invalid enrollment code */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getModules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of modules */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Module"][];
+                    };
+                };
+            };
+        };
+    };
+    createModule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateModuleBody"];
+            };
+        };
+        responses: {
+            /** @description Module created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Module"];
+                    };
+                };
+            };
+        };
+    };
+    getLessons: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                moduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of lessons */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Lesson"][];
+                    };
+                };
+            };
+        };
+    };
+    createLesson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                moduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLessonBody"];
+            };
+        };
+        responses: {
+            /** @description Lesson created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Lesson"];
+                    };
+                };
+            };
+        };
+    };
+    getMilestones: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                moduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of milestones */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Milestone"][];
+                    };
+                };
+            };
+        };
+    };
+    createMilestone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                moduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateMilestoneBody"];
+            };
+        };
+        responses: {
+            /** @description Milestone created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Milestone"];
+                    };
+                };
+            };
+        };
+    };
+    getSubmissions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                milestoneId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of submissions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Submission"][];
+                    };
+                };
+            };
+        };
+    };
+    createSubmission: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                milestoneId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSubmissionBody"];
+            };
+        };
+        responses: {
+            /** @description Submission created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Submission"];
+                    };
+                };
+            };
+        };
+    };
+    gradeSubmission: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GradeSubmissionBody"];
+            };
+        };
+        responses: {
+            /** @description Submission graded */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Submission"];
+                    };
+                };
+            };
+            /** @description Forbidden - instructor only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getMyGrades: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Student gradebook */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Submission"][];
                     };
                 };
             };
