@@ -1,29 +1,39 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Settings } from "lucide-react";
+import { BookOpen, GraduationCap, Inbox, User } from "lucide-react";
 import { cn } from "../../lib/utils";
-
-const navItems = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/settings", label: "Settings", icon: Settings },
-];
+import { useAuth } from "../../hooks/useAuth";
 
 export function Sidebar() {
+  const { user } = useAuth();
+  const isInstructor = user?.role === "instructor";
+  const navItems = isInstructor
+    ? [
+        { to: "/instructor/courses", label: "My Courses", icon: BookOpen },
+        { to: "/instructor/submissions", label: "Submissions", icon: Inbox },
+        { to: "/instructor/profile", label: "My Profile", icon: User },
+      ]
+    : [
+        { to: "/dashboard", label: "My Courses", icon: BookOpen },
+        { to: "/grades", label: "My Grades", icon: GraduationCap },
+        { to: "/profile", label: "My Profile", icon: User },
+      ];
+
   return (
-    <aside className="flex w-60 flex-col border-r bg-card">
-      <div className="flex h-14 items-center border-b px-6">
-        <span className="font-semibold">Starter Kit</span>
+    <aside className="hidden min-h-[calc(100vh-3.5rem)] w-60 shrink-0 border-r border-sidebar-border bg-sidebar md:block">
+      <div className="px-6 pb-3 pt-5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        {isInstructor ? "Instructor" : "Student"}
       </div>
-      <nav className="flex-1 space-y-1 p-3">
+      <nav className="space-y-1 p-3 pt-0">
         {navItems.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded-md border-l-2 px-3 py-2 text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                  ? "border-primary bg-accent text-primary"
+                  : "border-transparent text-sidebar-foreground hover:bg-accent/60",
               )
             }
           >

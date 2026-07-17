@@ -4,11 +4,11 @@ import { Sidebar } from "../components/layout/Sidebar";
 
 export function AppLayout() {
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-y-auto p-6">
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="flex">
+        <Sidebar />
+        <main className="w-full max-w-6xl flex-1 p-6 md:p-10">
           <Outlet />
         </main>
       </div>
