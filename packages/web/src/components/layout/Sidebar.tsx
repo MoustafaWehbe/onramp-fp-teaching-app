@@ -8,12 +8,12 @@ export function Sidebar() {
   const isInstructor = user?.role === "instructor";
   const navItems = isInstructor
     ? [
-        { to: "/instructor/courses", label: "My Courses", icon: BookOpen },
+        { to: "/courses", label: "My Courses", icon: BookOpen },
         { to: "/instructor/submissions", label: "Submissions", icon: Inbox },
         { to: "/instructor/profile", label: "My Profile", icon: User },
       ]
     : [
-        { to: "/dashboard", label: "My Courses", icon: BookOpen },
+        { to: "/courses", label: "My Courses", icon: BookOpen },
         { to: "/grades", label: "My Grades", icon: GraduationCap },
         { to: "/profile", label: "My Profile", icon: User },
       ];
