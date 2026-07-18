@@ -1,11 +1,10 @@
 import { Router } from "express";
 import { authRouter } from "./auth.routes";
+import { courseRouter } from "./course.routes";
 
 const router = Router();
 
 router.use("/auth", authRouter);
-
-// Add more routers here:
-// router.use('/users', usersRouter);
+router.use("/courses", courseRouter);
 
 export { router };

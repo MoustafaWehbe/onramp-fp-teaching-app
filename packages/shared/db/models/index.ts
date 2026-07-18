@@ -2,13 +2,15 @@ import type { Sequelize } from "sequelize";
 import { User } from "./User";
 import { Session } from "./Session";
 import { RefreshToken } from "./RefreshToken";
+import { Course } from "./Course";
 
-export { User, Session, RefreshToken };
+export { User, Session, RefreshToken, Course };
 
 export function initModels(sequelize: Sequelize): void {
   User.initModel(sequelize);
   Session.initModel(sequelize);
   RefreshToken.initModel(sequelize);
+  Course.initModel(sequelize);
 
   // Associations
   User.hasMany(Session, { foreignKey: "userId", as: "sessions" });
@@ -22,4 +24,8 @@ export function initModels(sequelize: Sequelize): void {
     as: "refreshTokens",
   });
   RefreshToken.belongsTo(Session, { foreignKey: "sessionId", as: "session" });
+
+  // Course associations
+  User.hasMany(Course, { foreignKey: "instructorId", as: "courses" });
+  Course.belongsTo(User, { foreignKey: "instructorId", as: "instructor" });
 }
