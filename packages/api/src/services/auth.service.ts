@@ -12,6 +12,7 @@ interface RegisterInput {
   email: string;
   password: string;
   name: string;
+  role?: "instructor" | "student";
 }
 
 interface LoginInput {
@@ -33,6 +34,7 @@ export class AuthService {
       email: input.email,
       passwordHash,
       name: input.name,
+      role: input.role ?? "student",
     });
 
     return { id: user.id, email: user.email, name: user.name, role: user.role };
