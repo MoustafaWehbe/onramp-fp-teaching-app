@@ -18,6 +18,11 @@ export const enrollmentController = {
       const { enrollmentCode } = req.body;
       const studentId = req.user!.userId;
 
+      if (!enrollmentCode) {
+      res.status(400).json({ error: "enrollmentCode is required" });
+      return;
+    }
+
       // Find course by enrollment code
       const course = await Course.findOne({
         where: { enrollmentCode},
