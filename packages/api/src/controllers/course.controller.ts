@@ -18,8 +18,10 @@ export const courseController = {
           where: { instructorId: userId },
         });
       } else {
-        // students see enrolled courses — will be updated when enrollment is added
-        courses = await Course.findAll();
+        // students only see published courses
+        courses = await Course.findAll({
+          where: { isPublished: true },
+        });
       }
 
       res.json({ data: courses });
@@ -39,6 +41,13 @@ export const courseController = {
         res.status(404).json({ error: "Course not found" });
         return;
       }
+
+      // Only allow access if published or requested by its instructor
+      if (!course.isPublished && course.instructorId !== req.user!.userId) {
+        res.status(403).json({ error: "Forbidden" });
+        return;
+      }
+
       res.json({ data: course });
     } catch (err) {
       next(err);
@@ -51,11 +60,19 @@ export const courseController = {
     next: NextFunction,
   ): Promise<void> {
     try {
+      // Only instructors can create courses
+      if (req.user!.role !== "instructor") {
+        res.status(403).json({ error: "Forbidden: Only instructors can create courses" });
+        return;
+      }
+
       const instructorId = req.user!.userId;
       const enrollmentCode = randomBytes(4).toString("hex").toUpperCase();
 
       const course = await Course.create({
-        ...req.body,
+        title: req.body.title,
+        description: req.body.description,
+        isPublished: req.body.isPublished ?? false,
         instructorId,
         enrollmentCode,
       });
@@ -83,7 +100,13 @@ export const courseController = {
         return;
       }
 
-      await course.update(req.body);
+      // Only allow updating safe fields
+      await course.update({
+        title: req.body.title,
+        description: req.body.description,
+        isPublished: req.body.isPublished,
+      });
+
       res.json({ data: course });
     } catch (err) {
       next(err);
