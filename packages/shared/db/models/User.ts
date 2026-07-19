@@ -53,8 +53,8 @@ export class User
           allowNull: false,
         },
         role: {
-          type: DataTypes.ENUM("admin", "user"),
-          defaultValue: "user",
+          type: DataTypes.ENUM("instructor", "student"),
+          defaultValue: "student",
           allowNull: false,
         },
         emailVerified: {
