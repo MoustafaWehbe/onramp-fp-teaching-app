@@ -20,7 +20,7 @@ export const enrollmentController = {
 
       // Find course by enrollment code
       const course = await Course.findOne({
-        where: { enrollmentCode, isPublished: true },
+        where: { enrollmentCode},
       });
 
       if (!course) {
