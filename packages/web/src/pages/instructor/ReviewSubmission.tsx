@@ -36,6 +36,7 @@ export function ReviewSubmissionPage() {
   const [saved, setSaved] = useState(false);
 
   function suggestFeedback() {
+    setSaved(false);
     setFeedback(
       "Great work overall. The implementation meets the core requirements and the deployment is reachable. To strengthen this further, add unit tests around the state logic and document the setup steps in the README. The UI is clean—consider adding loading and empty states for a more polished feel.",
     );
@@ -126,7 +127,8 @@ export function ReviewSubmissionPage() {
           <CardContent className="space-y-4">
             {saved && (
               <p className="flex items-center gap-2 rounded-md bg-status-graded p-3 text-sm text-status-graded-foreground">
-                <CheckCircle2 className="h-4 w-4" /> Grade saved in this preview.
+                <CheckCircle2 className="h-4 w-4" /> Grade saved in this
+                preview.
               </p>
             )}
             <div className="space-y-2">
@@ -137,7 +139,10 @@ export function ReviewSubmissionPage() {
                 min={0}
                 max={100}
                 value={score}
-                onChange={(event) => setScore(event.target.value)}
+                onChange={(event) => {
+                  setScore(event.target.value);
+                  setSaved(false);
+                }}
                 placeholder="0–100"
               />
             </div>
@@ -147,7 +152,10 @@ export function ReviewSubmissionPage() {
                 id="feedback"
                 rows={6}
                 value={feedback}
-                onChange={(event) => setFeedback(event.target.value)}
+                onChange={(event) => {
+                  setFeedback(event.target.value);
+                  setSaved(false);
+                }}
                 placeholder="Write your feedback here..."
               />
             </div>
@@ -167,7 +175,9 @@ export function ReviewSubmissionPage() {
               Save grade
             </Button>
             <div className="flex items-center justify-between pt-2">
-              <span className="text-xs text-muted-foreground">Current status</span>
+              <span className="text-xs text-muted-foreground">
+                Current status
+              </span>
               <StatusBadge status={saved ? "graded" : submission.status} />
             </div>
           </CardContent>
@@ -176,4 +186,3 @@ export function ReviewSubmissionPage() {
     </div>
   );
 }
-

@@ -9,8 +9,13 @@ export function Header() {
     user?.role === "instructor" ? "/instructor/profile" : "/profile";
 
   async function handleLogout() {
-    await logout();
-    navigate("/login", { replace: true });
+    try {
+      await logout();
+    } catch {
+      // AuthProvider clears the local session even when the API request fails.
+    } finally {
+      navigate("/login", { replace: true });
+    }
   }
 
   return (

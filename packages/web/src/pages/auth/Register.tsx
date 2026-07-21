@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
 import { useAuth } from "../../hooks/useAuth";
 import { Button } from "../../components/ui/button";
@@ -15,7 +16,10 @@ import {
 } from "../../components/ui/card";
 
 const registerSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
+  name: z
+    .string()
+    .min(2, "Name must be at least 2 characters")
+    .max(100, "Name must be 100 characters or less"),
   email: z.string().email("Enter a valid email address"),
   password: z
     .string()
@@ -30,6 +34,7 @@ export function Register() {
   const { register: registerUser } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const {
     register,
     handleSubmit,
@@ -66,9 +71,15 @@ export function Register() {
             )}
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
-              <Input id="name" placeholder="Alice Smith" {...register("name")} />
+              <Input
+                id="name"
+                placeholder="Alice Smith"
+                {...register("name")}
+              />
               {errors.name && (
-                <p className="text-xs text-destructive">{errors.name.message}</p>
+                <p className="text-xs text-destructive">
+                  {errors.name.message}
+                </p>
               )}
             </div>
             <div className="space-y-2">
@@ -81,18 +92,35 @@ export function Register() {
                 {...register("email")}
               />
               {errors.email && (
-                <p className="text-xs text-destructive">{errors.email.message}</p>
+                <p className="text-xs text-destructive">
+                  {errors.email.message}
+                </p>
               )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="register-password">Password</Label>
-              <Input
-                id="register-password"
-                type="password"
-                placeholder="••••••••"
-                autoComplete="new-password"
-                {...register("password")}
-              />
+              <div className="relative">
+                <Input
+                  id="register-password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  className="pr-10"
+                  {...register("password")}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
               {errors.password && (
                 <p className="text-xs text-destructive">
                   {errors.password.message}
@@ -104,7 +132,10 @@ export function Register() {
             </Button>
             <p className="text-center text-xs text-muted-foreground">
               Already registered?{" "}
-              <Link to="/login" className="font-medium text-primary hover:underline">
+              <Link
+                to="/login"
+                className="font-medium text-primary hover:underline"
+              >
                 Log in
               </Link>
             </p>

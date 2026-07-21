@@ -1,6 +1,12 @@
 import { useState, type FormEvent } from "react";
 import { useParams } from "react-router-dom";
-import { AlertTriangle, BookOpen, CheckCircle2, Plus, Trash2 } from "lucide-react";
+import {
+  AlertTriangle,
+  BookOpen,
+  CheckCircle2,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import {
@@ -65,22 +71,21 @@ export function SubmitMilestonePage() {
           Submission links saved in this preview.
         </div>
       )}
-      <form
-        onSubmit={submit}
-        className="grid grid-cols-1 gap-6 lg:grid-cols-3"
-      >
+      <form onSubmit={submit} className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="border-border lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-base">Your submission links</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Add links to your code, demos, and any artifacts your reviewer should see.
+              Add links to your code, demos, and any artifacts your reviewer
+              should see.
             </p>
           </CardHeader>
           <CardContent className="space-y-3">
-            {rows.map((row) => (
+            {rows.map((row, index) => (
               <div key={row.id} className="flex items-start gap-2">
                 <select
                   value={row.type}
+                  aria-label={`Link ${index + 1} type`}
                   onChange={(event) =>
                     update(row.id, { type: event.target.value as LinkType })
                   }
@@ -93,6 +98,7 @@ export function SubmitMilestonePage() {
                 </select>
                 <Input
                   placeholder="https://..."
+                  aria-label={`Link ${index + 1} URL`}
                   value={row.url}
                   onChange={(event) => updateUrl(row.id, event.target.value)}
                   className="flex-1"
@@ -136,7 +142,10 @@ export function SubmitMilestonePage() {
               </div>
             )}
             <div className="pt-2">
-              <Button type="submit" disabled={hasInvalid || !rows.some((row) => row.url)}>
+              <Button
+                type="submit"
+                disabled={hasInvalid || !rows.some((row) => row.url)}
+              >
                 Submit milestone
               </Button>
             </div>
@@ -181,4 +190,3 @@ export function SubmitMilestonePage() {
     </div>
   );
 }
-

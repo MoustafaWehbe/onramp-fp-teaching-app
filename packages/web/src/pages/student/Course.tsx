@@ -29,6 +29,7 @@ export function CoursePage() {
             <Card key={module.id} className="overflow-hidden border-border">
               <button
                 type="button"
+                aria-expanded={isOpen}
                 onClick={() =>
                   setOpenModules((current) => ({
                     ...current,
@@ -114,4 +115,3 @@ export function CoursePage() {
     </div>
   );
 }
-
