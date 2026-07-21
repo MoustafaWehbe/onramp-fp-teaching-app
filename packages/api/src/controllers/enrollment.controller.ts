@@ -9,12 +9,6 @@ export const enrollmentController = {
     next: NextFunction,
   ): Promise<void> {
     try {
-      // Only students can enroll
-      if (req.user!.role !== "student") {
-        res.status(403).json({ error: "Forbidden: Only students can enroll" });
-        return;
-      }
-
       const { enrollmentCode } = req.body;
       const studentId = req.user!.userId;
 
@@ -23,6 +17,7 @@ export const enrollmentController = {
       return;
     }
 
+    
       // Find course by enrollment code
       const course = await Course.findOne({
         where: { enrollmentCode},
