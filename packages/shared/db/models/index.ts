@@ -3,16 +3,18 @@ import { User } from "./User";
 import { Session } from "./Session";
 import { RefreshToken } from "./RefreshToken";
 import { Course } from "./Course";
+import { Enrollment } from "./Enrollment";
 
-export { User, Session, RefreshToken, Course };
+export { User, Session, RefreshToken, Course, Enrollment };
 
 export function initModels(sequelize: Sequelize): void {
   User.initModel(sequelize);
   Session.initModel(sequelize);
   RefreshToken.initModel(sequelize);
   Course.initModel(sequelize);
+  Enrollment.initModel(sequelize);
 
-  // Associations
+  // Auth associations
   User.hasMany(Session, { foreignKey: "userId", as: "sessions" });
   Session.belongsTo(User, { foreignKey: "userId", as: "user" });
 
@@ -28,4 +30,11 @@ export function initModels(sequelize: Sequelize): void {
   // Course associations
   User.hasMany(Course, { foreignKey: "instructorId", as: "courses" });
   Course.belongsTo(User, { foreignKey: "instructorId", as: "instructor" });
+
+  // Enrollment associations
+  User.hasMany(Enrollment, { foreignKey: "studentId", as: "enrollments" });
+  Enrollment.belongsTo(User, { foreignKey: "studentId", as: "student" });
+
+  Course.hasMany(Enrollment, { foreignKey: "courseId", as: "enrollments" });
+  Enrollment.belongsTo(Course, { foreignKey: "courseId", as: "course" });
 }
