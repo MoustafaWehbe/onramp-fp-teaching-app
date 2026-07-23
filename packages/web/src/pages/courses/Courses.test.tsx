@@ -233,6 +233,32 @@ describe("CoursesPage", () => {
     expect(postMock).not.toHaveBeenCalled();
   });
 
+  it("clears a cancelled course draft before reopening the form", async () => {
+    setAuthenticatedUser("instructor");
+    getMock.mockResolvedValueOnce(response([]) as never);
+
+    const { user } = renderCoursesPage();
+
+    await screen.findByText(/You have not created a course yet/i);
+    await user.click(
+      screen.getAllByRole("button", { name: "Create Course" })[0],
+    );
+    await user.type(screen.getByLabelText("Title"), "Draft course");
+    await user.type(
+      screen.getByLabelText("Description"),
+      "A description that should be cleared.",
+    );
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByLabelText("Title")).not.toBeInTheDocument();
+    await user.click(
+      screen.getAllByRole("button", { name: "Create Course" })[0],
+    );
+
+    expect(screen.getByLabelText("Title")).toHaveValue("");
+    expect(screen.getByLabelText("Description")).toHaveValue("");
+  });
+
   it("lets a student enroll and refreshes the course list", async () => {
     getMock
       .mockResolvedValueOnce(response([]) as never)

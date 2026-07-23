@@ -152,7 +152,7 @@ export async function getCourses(): Promise<Course[]> {
     throw new Error("The server returned an invalid courses response.");
   }
 
-  return data.data.map(normalizeCourse);
+  return data.data.map(requireCourse);
 }
 
 export async function getCourse(courseId: string): Promise<Course> {

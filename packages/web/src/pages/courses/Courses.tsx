@@ -108,6 +108,8 @@ export function CoursesPage() {
   function toggleCreateForm() {
     createCourse.reset();
     setCreateValidationError("");
+    setTitle("");
+    setDescription("");
     setShowCreateForm((current) => !current);
   }
 

@@ -79,4 +79,36 @@ describe("course route compatibility", () => {
       await screen.findByRole("heading", { name: "My Courses" }),
     ).toBeInTheDocument();
   });
+
+  it("redirects a student away from an instructor-only route", async () => {
+    setAuthenticatedUser("student");
+
+    renderWithProviders(
+      <>
+        <AppRoutes />
+        <LocationProbe />
+      </>,
+      { initialEntries: ["/instructor/profile"] },
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("location")).toHaveTextContent("/courses"),
+    );
+  });
+
+  it("redirects an instructor away from a student-only route", async () => {
+    setAuthenticatedUser("instructor");
+
+    renderWithProviders(
+      <>
+        <AppRoutes />
+        <LocationProbe />
+      </>,
+      { initialEntries: ["/grades"] },
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("location")).toHaveTextContent("/courses"),
+    );
+  });
 });
