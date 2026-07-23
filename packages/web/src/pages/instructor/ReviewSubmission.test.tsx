@@ -1,16 +1,24 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { ReviewSubmissionPage } from "./ReviewSubmission";
 
-function renderReviewSubmission() {
+function renderReviewSubmission(submissionId = "s1") {
   const user = userEvent.setup();
   render(
     <MemoryRouter
+      initialEntries={[
+        `/instructor/submissions/${submissionId}/review`,
+      ]}
       future={{ v7_relativeSplatPath: true, v7_startTransition: true }}
     >
-      <ReviewSubmissionPage />
+      <Routes>
+        <Route
+          path="/instructor/submissions/:submissionId/review"
+          element={<ReviewSubmissionPage />}
+        />
+      </Routes>
     </MemoryRouter>,
   );
   return user;
@@ -62,5 +70,60 @@ describe("ReviewSubmissionPage", () => {
     );
 
     expectUnsaved();
+  });
+
+  it("shows a not-found state for an unknown submission id", () => {
+    renderReviewSubmission("missing");
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Submission not found");
+    expect(
+      screen.getByRole("link", { name: "Back to Submissions" }),
+    ).toHaveAttribute("href", "/instructor/submissions");
+    expect(
+      screen.queryByRole("heading", { name: "Grade this submission" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Lina Haddad")).not.toBeInTheDocument();
+  });
+
+  it.each(["0", "100"])(
+    "accepts the inclusive score boundary %s",
+    async (score) => {
+      const user = renderReviewSubmission();
+
+      await user.type(screen.getByLabelText("Score (out of 100)"), score);
+      await user.type(screen.getByLabelText("Feedback"), "Meets expectations");
+
+      const saveButton = screen.getByRole("button", { name: "Save grade" });
+      expect(saveButton).toBeEnabled();
+      await user.click(saveButton);
+      expect(
+        screen.getByText("Grade saved in this preview."),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it.each(["-1", "101"])(
+    "rejects the out-of-range score %s",
+    async (score) => {
+      const user = renderReviewSubmission();
+
+      await user.type(screen.getByLabelText("Score (out of 100)"), score);
+      await user.type(screen.getByLabelText("Feedback"), "Needs review");
+
+      expect(
+        screen.getByRole("button", { name: "Save grade" }),
+      ).toBeDisabled();
+    },
+  );
+
+  it("rejects whitespace-only feedback", async () => {
+    const user = renderReviewSubmission();
+
+    await user.type(screen.getByLabelText("Score (out of 100)"), "85");
+    await user.type(screen.getByLabelText("Feedback"), "   ");
+
+    expect(
+      screen.getByRole("button", { name: "Save grade" }),
+    ).toBeDisabled();
   });
 });

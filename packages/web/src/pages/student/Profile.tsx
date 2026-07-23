@@ -1,7 +1,6 @@
-import { Award, Download, Mail, Trophy } from "lucide-react";
+import { Award, Mail, Trophy } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { Badge } from "../../components/ui/badge";
-import { Button } from "../../components/ui/button";
 import {
   Card,
   CardContent,
@@ -87,15 +86,15 @@ export function StudentProfilePage() {
         </CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-2">
           {profile.certificates.map((certificate) => (
-            <div key={certificate.id} className="flex items-start justify-between gap-3 rounded-md border border-border p-4">
+            <div
+              key={certificate.id}
+              className="rounded-md border border-border p-4"
+            >
               <div>
                 <p className="text-sm font-semibold">{certificate.title}</p>
                 <p className="text-xs text-muted-foreground">Issued {certificate.issued}</p>
                 <p className="mt-1 text-xs text-muted-foreground">ID: {certificate.credentialId}</p>
               </div>
-              <Button variant="ghost" size="sm" className="gap-1">
-                <Download className="h-3.5 w-3.5" /> PDF
-              </Button>
             </div>
           ))}
         </CardContent>

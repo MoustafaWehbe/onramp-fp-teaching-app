@@ -2,18 +2,14 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
+import { AuthCardHeader } from "../../components/auth/AuthCardHeader";
+import { PasswordInput } from "../../components/auth/PasswordInput";
 import { useAuth } from "../../hooks/useAuth";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card";
+import { Card, CardContent } from "../../components/ui/card";
 
 const registerSchema = z.object({
   name: z
@@ -34,7 +30,6 @@ export function Register() {
   const { register: registerUser } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
   const {
     register,
     handleSubmit,
@@ -54,14 +49,7 @@ export function Register() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-2 text-center">
-          <CardTitle className="text-2xl font-bold tracking-tight">
-            Bootcamp<span className="text-primary">.</span>
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Create your learning account
-          </p>
-        </CardHeader>
+        <AuthCardHeader description="Create your learning account" />
         <CardContent>
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
             {error && (
@@ -99,28 +87,12 @@ export function Register() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="register-password">Password</Label>
-              <div className="relative">
-                <Input
-                  id="register-password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  autoComplete="new-password"
-                  className="pr-10"
-                  {...register("password")}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((visible) => !visible)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
+              <PasswordInput
+                id="register-password"
+                placeholder="••••••••"
+                autoComplete="new-password"
+                {...register("password")}
+              />
               {errors.password && (
                 <p className="text-xs text-destructive">
                   {errors.password.message}

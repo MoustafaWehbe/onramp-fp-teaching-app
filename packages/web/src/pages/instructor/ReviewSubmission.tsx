@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import {
   ChevronRight,
   CheckCircle2,
@@ -8,7 +8,7 @@ import {
   Play,
   Sparkles,
 } from "lucide-react";
-import { Button } from "../../components/ui/button";
+import { Button, buttonVariants } from "../../components/ui/button";
 import {
   Card,
   CardContent,
@@ -29,16 +29,48 @@ function LinkIcon({ type }: { type: string }) {
 
 export function ReviewSubmissionPage() {
   const { submissionId } = useParams();
-  const submission =
-    submissions.find((item) => item.id === submissionId) ?? submissions[0];
+  const submission = submissions.find((item) => item.id === submissionId);
   const [score, setScore] = useState("");
   const [feedback, setFeedback] = useState("");
   const [saved, setSaved] = useState(false);
+  const parsedScore = Number(score);
+  const canSave =
+    score.trim() !== "" &&
+    Number.isFinite(parsedScore) &&
+    parsedScore >= 0 &&
+    parsedScore <= 100 &&
+    feedback.trim() !== "";
 
   function suggestFeedback() {
     setSaved(false);
     setFeedback(
       "Great work overall. The implementation meets the core requirements and the deployment is reachable. To strengthen this further, add unit tests around the state logic and document the setup steps in the README. The UI is clean—consider adding loading and empty states for a more polished feel.",
+    );
+  }
+
+  function saveGrade() {
+    if (canSave) {
+      setSaved(true);
+    }
+  }
+
+  if (!submission) {
+    return (
+      <div
+        role="alert"
+        className="rounded-lg border border-dashed border-border px-6 py-12 text-center"
+      >
+        <h1 className="text-xl font-semibold">Submission not found</h1>
+        <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+          This submission may have been removed, or the review link is invalid.
+        </p>
+        <Link
+          to="/instructor/submissions"
+          className={buttonVariants({ variant: "outline", className: "mt-4" })}
+        >
+          Back to Submissions
+        </Link>
+      </div>
     );
   }
 
@@ -169,8 +201,8 @@ export function ReviewSubmissionPage() {
             </Button>
             <Button
               className="w-full"
-              disabled={!score || !feedback}
-              onClick={() => setSaved(true)}
+              disabled={!canSave}
+              onClick={saveGrade}
             >
               Save grade
             </Button>

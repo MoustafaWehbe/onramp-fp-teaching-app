@@ -19,26 +19,29 @@ export function Sidebar() {
       ];
 
   return (
-    <aside className="hidden min-h-[calc(100vh-3.5rem)] w-60 shrink-0 border-r border-sidebar-border bg-sidebar md:block">
-      <div className="px-6 pb-3 pt-5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+    <aside className="fixed inset-x-0 bottom-0 z-40 border-t border-sidebar-border bg-sidebar md:static md:z-auto md:min-h-[calc(100vh-3.5rem)] md:w-60 md:shrink-0 md:border-r md:border-t-0">
+      <div className="hidden px-6 pb-3 pt-5 text-xs font-medium uppercase tracking-wider text-muted-foreground md:block">
         {isInstructor ? "Instructor" : "Student"}
       </div>
-      <nav className="space-y-1 p-3 pt-0">
+      <nav
+        aria-label="Primary navigation"
+        className="grid grid-cols-3 gap-1 p-2 md:block md:space-y-1 md:p-3 md:pt-0"
+      >
         {navItems.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-3 rounded-md border-l-2 px-3 py-2 text-sm font-medium transition-colors",
+                "flex min-w-0 flex-col items-center gap-1 rounded-md px-2 py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:flex-row md:gap-3 md:border-l-2 md:px-3 md:text-sm",
                 isActive
-                  ? "border-primary bg-accent text-primary"
-                  : "border-transparent text-sidebar-foreground hover:bg-accent/60",
+                  ? "bg-accent text-primary md:border-primary"
+                  : "text-sidebar-foreground hover:bg-accent/60 md:border-transparent",
               )
             }
           >
-            <Icon className="h-4 w-4" />
-            {label}
+            <Icon aria-hidden="true" className="h-4 w-4 shrink-0" />
+            <span className="truncate">{label}</span>
           </NavLink>
         ))}
       </nav>
