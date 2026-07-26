@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { RoleRoute } from "./RoleRoute";
 import { AppLayout } from "../layouts/AppLayout";
@@ -6,17 +6,15 @@ import { AuthLayout } from "../layouts/AuthLayout";
 import { Landing } from "../pages/Landing";
 import { Login } from "../pages/auth/Login";
 import { Register } from "../pages/auth/Register";
-import { Courses } from "../pages/courses/Courses";
-import { Dashboard } from "../pages/dashboard/Dashboard";
 import { Settings } from "../pages/dashboard/Settings";
-import { InstructorCoursesPage } from "../pages/instructor/Courses";
+import { CoursesPage } from "../pages/courses/Courses";
+import { CourseDetailPage } from "../pages/courses/CourseDetail";
 import { InstructorDashboard } from "../pages/instructor/InstructorDashboard";
 import { InstructorProfilePage } from "../pages/instructor/Profile";
 import { ReviewSubmissionPage } from "../pages/instructor/ReviewSubmission";
 import { SubmissionsPage } from "../pages/instructor/Submissions";
 import { LessonDetails } from "../pages/lessons/LessonDetails";
 import { ModuleDetails } from "../pages/modules/ModuleDetails";
-import { CoursePage } from "../pages/student/Course";
 import { GradesPage } from "../pages/student/Grades";
 import { StudentProfilePage } from "../pages/student/Profile";
 import { SubmitMilestonePage } from "../pages/student/SubmitMilestone";
@@ -38,20 +36,18 @@ export function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/settings" element={<Settings />} />
+          <Route
+            path="/dashboard"
+            element={<Navigate to="/courses" replace />}
+          />
+          <Route path="/courses" element={<CoursesPage />} />
+          <Route path="/courses/:id" element={<CourseDetailPage />} />
 
-          {/* Keep the newly merged placeholder routes until their UI lands. */}
-          <Route path="/courses" element={<Courses />} />
           <Route path="/modules/:id" element={<ModuleDetails />} />
           <Route path="/lessons/:id" element={<LessonDetails />} />
           <Route path="/submissions" element={<Submissions />} />
 
-          <Route
-            element={
-              <RoleRoute allow="student" redirectTo="/instructor/courses" />
-            }
-          >
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/courses/:courseId" element={<CoursePage />} />
+          <Route element={<RoleRoute allow="student" redirectTo="/courses" />}>
             <Route path="/grades" element={<GradesPage />} />
             <Route path="/profile" element={<StudentProfilePage />} />
             <Route
@@ -61,7 +57,7 @@ export function AppRoutes() {
           </Route>
 
           <Route
-            element={<RoleRoute allow="instructor" redirectTo="/dashboard" />}
+            element={<RoleRoute allow="instructor" redirectTo="/courses" />}
           >
             <Route
               path="/instructor/dashboard"
@@ -69,7 +65,7 @@ export function AppRoutes() {
             />
             <Route
               path="/instructor/courses"
-              element={<InstructorCoursesPage />}
+              element={<Navigate to="/courses" replace />}
             />
             <Route
               path="/instructor/submissions"
