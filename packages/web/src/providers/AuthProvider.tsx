@@ -7,11 +7,13 @@ import {
 } from "react";
 import { apiClient } from "../lib/api-client";
 
-interface AuthUser {
+export type UserRole = "instructor" | "student";
+
+export interface AuthUser {
   id: string;
   email: string;
   name: string;
-  role: string;
+  role: UserRole;
 }
 
 interface AuthContextValue {

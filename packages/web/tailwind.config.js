@@ -33,6 +33,23 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar))",
+          foreground: "hsl(var(--sidebar-foreground))",
+          border: "hsl(var(--sidebar-border))",
+        },
+        status: {
+          draft: "hsl(var(--status-draft))",
+          "draft-foreground": "hsl(var(--status-draft-foreground))",
+          submitted: "hsl(var(--status-submitted))",
+          "submitted-foreground": "hsl(var(--status-submitted-foreground))",
+          graded: "hsl(var(--status-graded))",
+          "graded-foreground": "hsl(var(--status-graded-foreground))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
