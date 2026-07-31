@@ -23,7 +23,12 @@ export const milestoneController = {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const milestone = await Milestone.findByPk(req.params.id as string);
+     const milestone = await Milestone.findOne({
+      where: {
+        id: req.params.id,
+        moduleId: req.params.moduleId,
+      },
+     });
       if (!milestone) {
         res.status(404).json({ error: "Milestone not found" });
         return;
@@ -58,7 +63,12 @@ export const milestoneController = {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const milestone = await Milestone.findByPk(req.params.id as string);
+     const milestone = await Milestone.findOne({
+      where: {
+        id: req.params.id,
+        moduleId: req.params.moduleId,
+      },
+     });
       if (!milestone) {
         res.status(404).json({ error: "Milestone not found" });
         return;
@@ -80,7 +90,12 @@ export const milestoneController = {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const milestone = await Milestone.findByPk(req.params.id as string);
+     const milestone = await Milestone.findOne({
+      where: {
+        id: req.params.id,
+        moduleId: req.params.moduleId,
+      },
+     });
       if (!milestone) {
         res.status(404).json({ error: "Milestone not found" });
         return;
