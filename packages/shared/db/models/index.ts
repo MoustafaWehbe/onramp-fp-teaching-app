@@ -20,17 +20,14 @@ export function initModels(sequelize: Sequelize): void {
   Submission.initModel(sequelize);
   SubmissionLink.initModel(sequelize);
 
-  
+ 
   User.hasMany(Session, { foreignKey: "userId", as: "sessions" });
   Session.belongsTo(User, { foreignKey: "userId", as: "user" });
 
   User.hasMany(RefreshToken, { foreignKey: "userId", as: "refreshTokens" });
   RefreshToken.belongsTo(User, { foreignKey: "userId", as: "user" });
 
-  Session.hasMany(RefreshToken, {
-    foreignKey: "sessionId",
-    as: "refreshTokens",
-  });
+  Session.hasMany(RefreshToken, { foreignKey: "sessionId", as: "refreshTokens" });
   RefreshToken.belongsTo(Session, { foreignKey: "sessionId", as: "session" });
 
   
@@ -44,7 +41,7 @@ export function initModels(sequelize: Sequelize): void {
   Course.hasMany(Enrollment, { foreignKey: "courseId", as: "enrollments" });
   Enrollment.belongsTo(Course, { foreignKey: "courseId", as: "course" });
 
- 
+  
   Milestone.belongsTo(Course, { foreignKey: "moduleId", as: "module" });
 
   
