@@ -108,7 +108,7 @@ export const submissionController = {
     }
   },
 
-  async gradeSubmission(
+    async gradeSubmission(
     req: Request,
     res: Response,
     next: NextFunction,
@@ -124,7 +124,13 @@ export const submissionController = {
         return;
       }
 
-      const submission = await Submission.findByPk(id as string);
+      const submission = await Submission.findByPk(id as string, {
+        include: [{ 
+          model: Milestone, 
+          as: "milestone",
+        }],
+      });
+
       if (!submission) {
         res.status(404).json({ error: "Submission not found" });
         return;
