@@ -1033,7 +1033,119 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  # ─── Milestone Lessons ───────────────────────────────────────────────────────
+  /milestones/{milestoneId}/lessons:
+    get:
+      tags: [Milestones]
+      summary: Get all lessons linked to a milestone
+      operationId: getMilestoneLessons
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: milestoneId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: List of lessons linked to milestone
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Lesson"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags: [Milestones]
+      summary: Link a lesson to a milestone (instructor only)
+      operationId: addLessonToMilestone
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: milestoneId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [lessonId]
+              properties:
+                lessonId:
+                  type: string
+                  format: uuid
+      responses:
+        "201":
+          description: Lesson linked to milestone
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
+  /milestones/{milestoneId}/lessons/{lessonId}:
+    delete:
+      tags: [Milestones]
+      summary: Remove a lesson from a milestone (instructor only)
+      operationId: removeLessonFromMilestone
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: milestoneId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: lessonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Lesson removed from milestone
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   # ─── Submissions ─────────────────────────────────────────────────────────────
   /milestones/{milestoneId}/submissions:
     get:

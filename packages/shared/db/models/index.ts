@@ -5,6 +5,7 @@ import { RefreshToken } from "./RefreshToken";
 import { Course } from "./Course";
 import { Enrollment } from "./Enrollment";
 import { Milestone } from "./Milestone";
+import { MilestoneLesson } from "./MilestoneLesson";
 import { Submission } from "./Submission";
 import { SubmissionLink } from "./SubmissionLink";
 import { Module } from "./Module";
@@ -17,6 +18,7 @@ export {
   Course,
   Enrollment,
   Milestone,
+  MilestoneLesson,
   Submission,
   SubmissionLink,
   Module,
@@ -30,6 +32,7 @@ export function initModels(sequelize: Sequelize): void {
   Course.initModel(sequelize);
   Enrollment.initModel(sequelize);
   Milestone.initModel(sequelize);
+  MilestoneLesson.initModel(sequelize);
   Submission.initModel(sequelize);
   SubmissionLink.initModel(sequelize);
   Module.initModel(sequelize);
@@ -37,10 +40,8 @@ export function initModels(sequelize: Sequelize): void {
 
   User.hasMany(Session, { foreignKey: "userId", as: "sessions" });
   Session.belongsTo(User, { foreignKey: "userId", as: "user" });
-
   User.hasMany(RefreshToken, { foreignKey: "userId", as: "refreshTokens" });
   RefreshToken.belongsTo(User, { foreignKey: "userId", as: "user" });
-
   Session.hasMany(RefreshToken, {
     foreignKey: "sessionId",
     as: "refreshTokens",
@@ -63,6 +64,17 @@ export function initModels(sequelize: Sequelize): void {
 
   Milestone.belongsTo(Module, { foreignKey: "moduleId", as: "module" });
   Module.hasMany(Milestone, { foreignKey: "moduleId", as: "milestones" });
+
+  Milestone.belongsToMany(Lesson, {
+    through: MilestoneLesson,
+    foreignKey: "milestoneId",
+    as: "lessons",
+  });
+  Lesson.belongsToMany(Milestone, {
+    through: MilestoneLesson,
+    foreignKey: "lessonId",
+    as: "milestones",
+  });
 
   Submission.belongsTo(Milestone, {
     foreignKey: "milestoneId",

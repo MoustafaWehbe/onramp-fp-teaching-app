@@ -1,13 +1,13 @@
+import xss from "xss";
 import type { Request, Response, NextFunction } from "express";
 import { Submission } from "@starter-kit/shared/db/models/Submission";
 import { SubmissionLink } from "@starter-kit/shared/db/models/SubmissionLink";
 import { Milestone } from "@starter-kit/shared/db/models/Milestone";
 import { User } from "@starter-kit/shared/db/models/User";
 
-// URL validation patterns
 const URL_PATTERNS: Record<string, RegExp> = {
-  github: /^https?:\/\/(www\.)?github\.com\/.+/,
-  loom: /^https?:\/\/(www\.)?loom\.com\/.+/,
+  github: /^https?:\/\/(?:www\.)?github\.com\/.+/,
+  loom: /^https?:\/\/(?:www\.)?loom\.com\/.+/,
   deployment: /^https?:\/\/.+/,
   other: /^https?:\/\/.+/,
 };
@@ -17,6 +17,10 @@ function validateUrl(url: string, type: string): boolean {
   return pattern.test(url);
 }
 
+function getParam(value: string | string[]): string {
+  return Array.isArray(value) ? value[0] : value;
+}
+
 export const submissionController = {
   async getSubmissions(
     req: Request,
@@ -24,13 +28,13 @@ export const submissionController = {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const milestoneId = req.params.milestoneId as string;
+      const milestoneId = getParam(req.params.milestoneId);
       const userId = req.user!.userId;
       const role = req.user!.role;
 
       let submissions;
+
       if (role === "instructor") {
-        // Instructor sees all submissions for this milestone
         submissions = await Submission.findAll({
           where: { milestoneId },
           include: [
@@ -43,7 +47,6 @@ export const submissionController = {
           ],
         });
       } else {
-        // Student sees only their own submissions
         submissions = await Submission.findAll({
           where: { milestoneId, studentId: userId },
           include: [{ model: SubmissionLink, as: "links" }],
@@ -62,11 +65,10 @@ export const submissionController = {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const milestoneId = req.params.milestoneId as string;
+      const milestoneId = getParam(req.params.milestoneId);
       const studentId = req.user!.userId;
       const { links } = req.body;
 
-      // Validate links
       if (!links || links.length === 0) {
         res.status(400).json({ error: "At least one link is required" });
         return;
@@ -77,24 +79,22 @@ export const submissionController = {
         return;
       }
 
-      // Validate each URL
       for (const link of links) {
         if (!validateUrl(link.url, link.type)) {
-          res
-            .status(400)
-            .json({ error: `Invalid URL for type ${link.type}: ${link.url}` });
+          res.status(400).json({
+            error: `Invalid URL for type ${link.type}: ${link.url}`,
+          });
           return;
         }
       }
 
-      // Check milestone exists
       const milestone = await Milestone.findByPk(milestoneId);
+
       if (!milestone) {
         res.status(404).json({ error: "Milestone not found" });
         return;
       }
 
-      // Create submission
       const submission = await Submission.create({
         milestoneId,
         studentId,
@@ -102,18 +102,20 @@ export const submissionController = {
         submittedAt: new Date(),
       });
 
-      // Create links
       const submissionLinks = await SubmissionLink.bulkCreate(
         links.map((link: { url: string; type: string }) => ({
           submissionId: submission.id,
-          url: link.url,
+          url: xss(link.url),
           type: link.type,
         })),
       );
 
-      res
-        .status(201)
-        .json({ data: { ...submission.toJSON(), links: submissionLinks } });
+      res.status(201).json({
+        data: {
+          ...submission.toJSON(),
+          links: submissionLinks,
+        },
+      });
     } catch (err) {
       next(err);
     }
@@ -125,13 +127,14 @@ export const submissionController = {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = getParam(req.params.id);
       const gradedBy = req.user!.userId;
       const { score, feedback } = req.body;
 
-      // Validate score
       if (score < 0 || score > 100) {
-        res.status(400).json({ error: "Score must be between 0 and 100" });
+        res.status(400).json({
+          error: "Score must be between 0 and 100",
+        });
         return;
       }
 
@@ -151,7 +154,7 @@ export const submissionController = {
 
       await submission.update({
         score,
-        feedback,
+        feedback: feedback ? xss(feedback) : undefined,
         gradedBy,
         status: "graded",
         gradedAt: new Date(),
