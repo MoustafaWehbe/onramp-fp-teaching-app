@@ -7,7 +7,9 @@ import { SubmissionLink } from "@starter-kit/shared/db/models/SubmissionLink";
 import { submissionController } from "../../src/controllers/submission.controller";
 
 function responseMock() {
-  return { json: jest.fn() } as unknown as Response;
+  const response = { status: jest.fn(), json: jest.fn() };
+  response.status.mockReturnValue(response);
+  return response as unknown as Response;
 }
 
 describe("submissionController.getMyGrades", () => {
@@ -71,5 +73,39 @@ describe("submissionController.getMyGrades", () => {
 
     expect(response.json).not.toHaveBeenCalled();
     expect(next).toHaveBeenCalledWith(databaseError);
+  });
+});
+
+describe("submissionController.gradeSubmission", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("loads only the milestone summary fields declared by the API contract", async () => {
+    const findByPk = jest.spyOn(Submission, "findByPk").mockResolvedValue(null);
+    const request = {
+      params: { id: "submission-1" },
+      body: { score: 90, feedback: "Good work" },
+      user: { userId: "instructor-1", role: "instructor" },
+    } as unknown as Request;
+    const response = responseMock();
+    const next = jest.fn() as NextFunction;
+
+    await submissionController.gradeSubmission(request, response, next);
+
+    expect(findByPk).toHaveBeenCalledWith("submission-1", {
+      include: [
+        {
+          model: Milestone,
+          as: "milestone",
+          attributes: ["id", "title"],
+        },
+      ],
+    });
+    expect(response.status).toHaveBeenCalledWith(404);
+    expect(response.json).toHaveBeenCalledWith({
+      error: "Submission not found",
+    });
+    expect(next).not.toHaveBeenCalled();
   });
 });

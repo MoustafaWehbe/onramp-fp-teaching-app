@@ -137,6 +137,7 @@ export const submissionController = {
           {
             model: Milestone,
             as: "milestone",
+            attributes: ["id", "title"],
           },
         ],
       });

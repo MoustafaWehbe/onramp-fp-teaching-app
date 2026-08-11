@@ -1304,3 +1304,9 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - student only
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"

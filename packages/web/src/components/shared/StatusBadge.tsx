@@ -1,9 +1,11 @@
 import { Badge } from "../ui/badge";
+import type { SubmissionStatus } from "../../lib/submissions-api";
 import { cn } from "../../lib/utils";
 
-type Status = "draft" | "submitted" | "graded";
-
-const statusStyles: Record<Status, { label: string; className: string }> = {
+const statusStyles: Record<
+  SubmissionStatus,
+  { label: string; className: string }
+> = {
   draft: {
     label: "Draft",
     className: "bg-status-draft text-status-draft-foreground",
@@ -22,7 +24,7 @@ export function StatusBadge({
   status,
   className,
 }: {
-  status: Status;
+  status: SubmissionStatus;
   className?: string;
 }) {
   const style = statusStyles[status];

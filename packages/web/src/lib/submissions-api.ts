@@ -147,7 +147,7 @@ export function getSafeHttpUrl(value: string): string | null {
   try {
     const parsed = new URL(value);
     return parsed.protocol === "http:" || parsed.protocol === "https:"
-      ? value
+      ? parsed.href
       : null;
   } catch {
     return null;
@@ -212,5 +212,11 @@ export async function getMyGrades(): Promise<StudentSubmission[]> {
     throw new Error("The server returned an invalid grades response.");
   }
 
-  return data.data.map(normalizeSubmission);
+  return data.data.flatMap((item) => {
+    try {
+      return [normalizeSubmission(item)];
+    } catch {
+      return [];
+    }
+  });
 }
