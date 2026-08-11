@@ -1,4 +1,4 @@
-import { DataTypes, Model, type Optional, type Sequelize } from "sequelize";
+import { Model, DataTypes, type Sequelize, type Optional } from "sequelize";
 
 export interface LessonAttributes {
   id: string;
@@ -72,7 +72,6 @@ export class Lesson
         underscored: true,
       },
     );
-
     return Lesson;
   }
 }

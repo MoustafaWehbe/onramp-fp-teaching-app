@@ -4,11 +4,11 @@ import { Session } from "./Session";
 import { RefreshToken } from "./RefreshToken";
 import { Course } from "./Course";
 import { Enrollment } from "./Enrollment";
-import { Lesson } from "./Lesson";
 import { Milestone } from "./Milestone";
-import { Module } from "./Module";
 import { Submission } from "./Submission";
 import { SubmissionLink } from "./SubmissionLink";
+import { Module } from "./Module";
+import { Lesson } from "./Lesson";
 
 export {
   User,
@@ -16,11 +16,11 @@ export {
   RefreshToken,
   Course,
   Enrollment,
-  Lesson,
   Milestone,
-  Module,
   Submission,
   SubmissionLink,
+  Module,
+  Lesson,
 };
 
 export function initModels(sequelize: Sequelize): void {
@@ -29,11 +29,11 @@ export function initModels(sequelize: Sequelize): void {
   RefreshToken.initModel(sequelize);
   Course.initModel(sequelize);
   Enrollment.initModel(sequelize);
-  Module.initModel(sequelize);
-  Lesson.initModel(sequelize);
   Milestone.initModel(sequelize);
   Submission.initModel(sequelize);
   SubmissionLink.initModel(sequelize);
+  Module.initModel(sequelize);
+  Lesson.initModel(sequelize);
 
   User.hasMany(Session, { foreignKey: "userId", as: "sessions" });
   Session.belongsTo(User, { foreignKey: "userId", as: "user" });
@@ -52,7 +52,6 @@ export function initModels(sequelize: Sequelize): void {
 
   User.hasMany(Enrollment, { foreignKey: "studentId", as: "enrollments" });
   Enrollment.belongsTo(User, { foreignKey: "studentId", as: "student" });
-
   Course.hasMany(Enrollment, { foreignKey: "courseId", as: "enrollments" });
   Enrollment.belongsTo(Course, { foreignKey: "courseId", as: "course" });
 
@@ -62,8 +61,8 @@ export function initModels(sequelize: Sequelize): void {
   Module.hasMany(Lesson, { foreignKey: "moduleId", as: "lessons" });
   Lesson.belongsTo(Module, { foreignKey: "moduleId", as: "module" });
 
-  Module.hasMany(Milestone, { foreignKey: "moduleId", as: "milestones" });
   Milestone.belongsTo(Module, { foreignKey: "moduleId", as: "module" });
+  Module.hasMany(Milestone, { foreignKey: "moduleId", as: "milestones" });
 
   Submission.belongsTo(Milestone, {
     foreignKey: "milestoneId",

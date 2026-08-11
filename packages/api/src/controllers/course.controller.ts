@@ -1,3 +1,4 @@
+import { Enrollment } from "@starter-kit/shared/db/models/Enrollment";
 import type { Request, Response, NextFunction } from "express";
 import { Course } from "@starter-kit/shared/db/models/Course";
 import { randomBytes } from "crypto";
@@ -18,9 +19,13 @@ export const courseController = {
           where: { instructorId: userId },
         });
       } else {
-        // students only see published courses
+        // students only see courses they are enrolled in
+        const enrollments = await Enrollment.findAll({
+          where: { studentId: userId },
+        });
+        const courseIds = enrollments.map((e: any) => e.courseId);
         courses = await Course.findAll({
-          where: { isPublished: true },
+          where: { id: courseIds },
         });
       }
 
@@ -62,7 +67,9 @@ export const courseController = {
     try {
       // Only instructors can create courses
       if (req.user!.role !== "instructor") {
-        res.status(403).json({ error: "Forbidden: Only instructors can create courses" });
+        res
+          .status(403)
+          .json({ error: "Forbidden: Only instructors can create courses" });
         return;
       }
 
