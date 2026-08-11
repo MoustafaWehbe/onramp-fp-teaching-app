@@ -28,10 +28,8 @@ export function initModels(sequelize: Sequelize): void {
 
   User.hasMany(Session, { foreignKey: "userId", as: "sessions" });
   Session.belongsTo(User, { foreignKey: "userId", as: "user" });
-
   User.hasMany(RefreshToken, { foreignKey: "userId", as: "refreshTokens" });
   RefreshToken.belongsTo(User, { foreignKey: "userId", as: "user" });
-
   Session.hasMany(RefreshToken, { foreignKey: "sessionId", as: "refreshTokens" });
   RefreshToken.belongsTo(Session, { foreignKey: "sessionId", as: "session" });
 
