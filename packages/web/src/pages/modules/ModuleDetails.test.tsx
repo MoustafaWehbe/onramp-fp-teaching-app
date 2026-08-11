@@ -2,7 +2,7 @@ import { screen, within } from "@testing-library/react";
 import { Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiClient } from "../../lib/api-client";
-import { renderWithProviders } from "../../test/test-utils";
+import { renderWithProviders, response } from "../../test/test-utils";
 import { ModuleDetails } from "./ModuleDetails";
 
 vi.mock("../../lib/api-client", () => ({
@@ -17,7 +17,7 @@ const course = {
   description: "Build production-ready applications.",
   isPublished: true,
 };
-const module = {
+const courseModule = {
   id: "module-1",
   courseId: course.id,
   title: "Frontend Foundations",
@@ -26,7 +26,7 @@ const module = {
 const lessons = [
   {
     id: "lesson-2",
-    moduleId: module.id,
+    moduleId: courseModule.id,
     title: "State management",
     content: "State content",
     videoUrl: null,
@@ -35,7 +35,7 @@ const lessons = [
   },
   {
     id: "lesson-1",
-    moduleId: module.id,
+    moduleId: courseModule.id,
     title: "React components",
     content: "Component content",
     videoUrl: null,
@@ -44,15 +44,11 @@ const lessons = [
   },
 ];
 
-function response(data: unknown) {
-  return Promise.resolve({ data: { data } }) as never;
-}
-
 function mockModulePage(lessonData: unknown = lessons) {
   getMock.mockImplementation((url) => {
     if (url === "/courses/course-1") return response(course);
     if (url === "/courses/course-1/modules/module-1") {
-      return response(module);
+      return response(courseModule);
     }
     if (url === "/modules/module-1/lessons") return response(lessonData);
     return Promise.reject(new Error(`Unexpected request: ${url}`));
@@ -81,13 +77,11 @@ describe("ModuleDetails", () => {
     renderModule();
 
     expect(
-      await screen.findByRole("heading", { name: module.title }),
+      await screen.findByRole("heading", { name: courseModule.title }),
     ).toBeInTheDocument();
     expect(getMock).toHaveBeenCalledWith("/modules/module-1/lessons");
 
-    const lessonsSection = screen.getByRole("heading", {
-      name: "Lessons",
-    }).parentElement!;
+    const lessonsSection = screen.getByRole("region", { name: "Lessons" });
     const lessonLinks = within(lessonsSection).getAllByRole("link");
     expect(lessonLinks[0]).toHaveTextContent("React components");
     expect(lessonLinks[0]).toHaveAttribute(
@@ -110,7 +104,7 @@ describe("ModuleDetails", () => {
     getMock.mockImplementation((url) => {
       if (url === "/courses/course-1") return response(course);
       if (url === "/courses/course-1/modules/module-1") {
-        return response(module);
+        return response(courseModule);
       }
       if (url === "/modules/module-1/lessons") {
         lessonRequests += 1;

@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuth } from "../../hooks/useAuth";
 import { apiClient } from "../../lib/api-client";
 import type { Course } from "../../lib/courses-api";
-import { renderWithProviders } from "../../test/test-utils";
+import { renderWithProviders, response } from "../../test/test-utils";
 import { CourseDetailPage } from "./CourseDetail";
 
 vi.mock("../../hooks/useAuth", () => ({ useAuth: vi.fn() }));
@@ -40,10 +40,6 @@ const modules = [
     order: 1,
   },
 ];
-
-function response(data: unknown) {
-  return Promise.resolve({ data: { data } }) as never;
-}
 
 function mockCoursePage(moduleData: unknown = modules) {
   getMock.mockImplementation((url) => {
@@ -95,9 +91,7 @@ describe("CourseDetailPage", () => {
     ).toBeInTheDocument();
     expect(getMock).toHaveBeenCalledWith(`/courses/${course.id}/modules`);
 
-    const moduleSection = screen.getByRole("heading", {
-      name: "Modules",
-    }).parentElement!;
+    const moduleSection = screen.getByRole("region", { name: "Modules" });
     const moduleLinks = within(moduleSection).getAllByRole("link", {
       name: "Open Module",
     });

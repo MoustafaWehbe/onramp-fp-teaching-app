@@ -6,7 +6,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
-import { EmptyState } from "../../components/shared/EmptyState";
+import { QueryListSection } from "../../components/shared/QueryListSection";
 import { Button, buttonVariants } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import { useCourse } from "../../hooks/useCourses";
@@ -129,73 +129,46 @@ export function ModuleDetails() {
           Lessons
         </h2>
 
-        {lessonsQuery.isPending ? (
-          <div aria-label="Loading module lessons" className="space-y-3">
-            {[0, 1, 2].map((item) => (
-              <div
-                key={item}
-                className="h-20 animate-pulse rounded-lg bg-muted"
-              />
-            ))}
-          </div>
-        ) : lessonsQuery.isError ? (
-          <div
-            role="alert"
-            className="rounded-lg border border-destructive/30 bg-destructive/5 p-5"
-          >
-            <div className="flex items-start gap-3">
-              <CircleAlert className="mt-0.5 h-5 w-5 text-destructive" />
-              <div>
-                <p className="font-medium">Lessons could not be loaded</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {getApiErrorMessage(lessonsQuery.error)}
-                </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="mt-3"
-                  onClick={() => void lessonsQuery.refetch()}
-                  disabled={lessonsQuery.isFetching}
-                >
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  {lessonsQuery.isFetching ? "Retrying..." : "Retry"}
-                </Button>
-              </div>
-            </div>
-          </div>
-        ) : lessonsQuery.data.length === 0 ? (
-          <EmptyState
-            icon={<BookOpen className="h-10 w-10" />}
-            message="No lessons yet. Learning content will appear here when it is added."
-          />
-        ) : (
-          <Card className="border-border">
-            <ol className="divide-y divide-border">
-              {lessonsQuery.data.map((lesson, index) => (
-                <li key={lesson.id}>
-                  <Link
-                    to={`/courses/${course.id}/modules/${module.id}/lessons/${lesson.id}`}
-                    className="flex items-center justify-between gap-4 px-5 py-4 transition-colors hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-                  >
-                    <div className="flex min-w-0 items-center gap-3">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold">
-                        {index + 1}
-                      </span>
-                      <span className="truncate font-medium">
-                        {lesson.title}
-                      </span>
-                    </div>
-                    <ChevronRight
-                      aria-hidden="true"
-                      className="h-4 w-4 shrink-0 text-muted-foreground"
-                    />
-                  </Link>
-                </li>
-              ))}
-            </ol>
-          </Card>
-        )}
+        <QueryListSection
+          data={lessonsQuery.data}
+          isPending={lessonsQuery.isPending}
+          isError={lessonsQuery.isError}
+          isFetching={lessonsQuery.isFetching}
+          error={lessonsQuery.error}
+          loadingLabel="Loading module lessons"
+          errorTitle="Lessons could not be loaded"
+          emptyIcon={<BookOpen className="h-10 w-10" />}
+          emptyMessage="No lessons yet. Learning content will appear here when it is added."
+          onRetry={() => void lessonsQuery.refetch()}
+        >
+          {(lessons) => (
+            <Card className="border-border">
+              <ol className="divide-y divide-border">
+                {lessons.map((lesson, index) => (
+                  <li key={lesson.id}>
+                    <Link
+                      to={`/courses/${course.id}/modules/${module.id}/lessons/${lesson.id}`}
+                      className="flex items-center justify-between gap-4 px-5 py-4 transition-colors hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold">
+                          {index + 1}
+                        </span>
+                        <span className="truncate font-medium">
+                          {lesson.title}
+                        </span>
+                      </div>
+                      <ChevronRight
+                        aria-hidden="true"
+                        className="h-4 w-4 shrink-0 text-muted-foreground"
+                      />
+                    </Link>
+                  </li>
+                ))}
+              </ol>
+            </Card>
+          )}
+        </QueryListSection>
       </section>
     </div>
   );

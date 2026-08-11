@@ -59,7 +59,8 @@ function youtubeEmbedUrl(value: string): string | null {
 
 function markdownHref(value: string | undefined): string | undefined {
   if (!value) return undefined;
-  if (value.startsWith("#") || value.startsWith("/")) return value;
+  if (value.startsWith("#")) return value;
+  if (value.startsWith("/") && !value.startsWith("//")) return value;
   return safeHttpUrl(value) ?? undefined;
 }
 

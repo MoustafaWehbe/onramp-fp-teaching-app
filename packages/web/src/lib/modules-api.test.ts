@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { response } from "../test/test-utils";
 import { apiClient } from "./api-client";
 import { getLesson, getLessons, getModule, getModules } from "./modules-api";
 
@@ -7,10 +8,6 @@ vi.mock("./api-client", () => ({
 }));
 
 const getMock = vi.mocked(apiClient.get);
-
-function response(data: unknown) {
-  return Promise.resolve({ data: { data } }) as never;
-}
 
 describe("modules API", () => {
   beforeEach(() => {

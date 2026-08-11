@@ -6,7 +6,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
-import { EmptyState } from "../../components/shared/EmptyState";
+import { QueryListSection } from "../../components/shared/QueryListSection";
 import { Badge } from "../../components/ui/badge";
 import { Button, buttonVariants } from "../../components/ui/button";
 import {
@@ -133,69 +133,43 @@ export function CourseDetailPage() {
         <h2 id="modules-heading" className="text-xl font-semibold">
           Modules
         </h2>
-        {modulesQuery.isPending ? (
-          <div aria-label="Loading course modules" className="space-y-3">
-            {[0, 1].map((item) => (
-              <div
-                key={item}
-                className="h-20 animate-pulse rounded-lg bg-muted"
-              />
-            ))}
-          </div>
-        ) : modulesQuery.isError ? (
-          <div
-            role="alert"
-            className="rounded-lg border border-destructive/30 bg-destructive/5 p-5"
-          >
-            <div className="flex items-start gap-3">
-              <CircleAlert className="mt-0.5 h-5 w-5 text-destructive" />
-              <div>
-                <p className="font-medium">Modules could not be loaded</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {getApiErrorMessage(modulesQuery.error)}
-                </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="mt-3"
-                  onClick={() => void modulesQuery.refetch()}
-                  disabled={modulesQuery.isFetching}
-                >
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  {modulesQuery.isFetching ? "Retrying..." : "Retry"}
-                </Button>
-              </div>
+        <QueryListSection
+          data={modulesQuery.data}
+          isPending={modulesQuery.isPending}
+          isError={modulesQuery.isError}
+          isFetching={modulesQuery.isFetching}
+          error={modulesQuery.error}
+          loadingLabel="Loading course modules"
+          loadingCount={2}
+          errorTitle="Modules could not be loaded"
+          emptyIcon={<Layers3 className="h-10 w-10" />}
+          emptyMessage="No modules yet. Course content will appear here when the instructor adds it."
+          onRetry={() => void modulesQuery.refetch()}
+        >
+          {(modules) => (
+            <div className="grid gap-3">
+              {modules.map((module, index) => (
+                <Card key={module.id} className="border-border">
+                  <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                        Module {index + 1}
+                      </p>
+                      <h3 className="mt-1 font-semibold">{module.title}</h3>
+                    </div>
+                    <Link
+                      to={`/courses/${course.id}/modules/${module.id}`}
+                      className={buttonVariants({ variant: "outline" })}
+                    >
+                      Open Module
+                      <ChevronRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-          </div>
-        ) : modulesQuery.data.length === 0 ? (
-          <EmptyState
-            icon={<Layers3 className="h-10 w-10" />}
-            message="No modules yet. Course content will appear here when the instructor adds it."
-          />
-        ) : (
-          <div className="grid gap-3">
-            {modulesQuery.data.map((module, index) => (
-              <Card key={module.id} className="border-border">
-                <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                      Module {index + 1}
-                    </p>
-                    <h3 className="mt-1 font-semibold">{module.title}</h3>
-                  </div>
-                  <Link
-                    to={`/courses/${course.id}/modules/${module.id}`}
-                    className={buttonVariants({ variant: "outline" })}
-                  >
-                    Open Module
-                    <ChevronRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+          )}
+        </QueryListSection>
       </section>
     </div>
   );

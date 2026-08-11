@@ -2,7 +2,7 @@ import { screen } from "@testing-library/react";
 import { Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiClient } from "../../lib/api-client";
-import { renderWithProviders } from "../../test/test-utils";
+import { renderWithProviders, response } from "../../test/test-utils";
 import { LessonDetails } from "./LessonDetails";
 
 vi.mock("../../lib/api-client", () => ({
@@ -17,7 +17,7 @@ const course = {
   description: "Build production-ready applications.",
   isPublished: true,
 };
-const module = {
+const courseModule = {
   id: "module-1",
   courseId: course.id,
   title: "Frontend Foundations",
@@ -25,7 +25,7 @@ const module = {
 };
 const lesson = {
   id: "lesson-1",
-  moduleId: module.id,
+  moduleId: courseModule.id,
   title: "React components",
   content: [
     "# Build a component",
@@ -48,15 +48,11 @@ const lesson = {
   order: 1,
 };
 
-function response(data: unknown) {
-  return Promise.resolve({ data: { data } }) as never;
-}
-
 function mockLessonPage(lessonData: unknown = lesson) {
   getMock.mockImplementation((url) => {
     if (url === "/courses/course-1") return response(course);
     if (url === "/courses/course-1/modules/module-1") {
-      return response(module);
+      return response(courseModule);
     }
     if (url === "/modules/module-1/lessons/lesson-1") {
       return response(lessonData);
@@ -156,11 +152,46 @@ describe("LessonDetails", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("does not render unsafe video URLs", async () => {
+    mockLessonPage({
+      ...lesson,
+      videoUrl: "javascript:alert(1)",
+      starterCodeUrl: null,
+    });
+
+    renderLesson();
+
+    await screen.findByRole("heading", { name: lesson.title, level: 1 });
+    expect(
+      screen.queryByRole("link", { name: /Watch Video/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTitle(`${lesson.title} video`),
+    ).not.toBeInTheDocument();
+  });
+
+  it("rejects protocol-relative links in lesson Markdown", async () => {
+    mockLessonPage({
+      ...lesson,
+      content: "Read the [unsafe guide](//evil.example/path).",
+      videoUrl: null,
+      starterCodeUrl: null,
+    });
+
+    renderLesson();
+
+    await screen.findByRole("heading", { name: lesson.title, level: 1 });
+    expect(screen.getByText("unsafe guide")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "unsafe guide" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("shows a sensible not-found response for an unknown lesson", async () => {
     getMock.mockImplementation((url) => {
       if (url === "/courses/course-1") return response(course);
       if (url === "/courses/course-1/modules/module-1") {
-        return response(module);
+        return response(courseModule);
       }
       if (url === "/modules/module-1/lessons/lesson-1") {
         return Promise.reject({

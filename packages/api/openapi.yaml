@@ -188,16 +188,13 @@ components:
           type: string
           example: HTML Basics
         content:
-          type: string
-          nullable: true
+          type: [string, "null"]
           example: "# HTML Basics\n\nLearn the fundamentals of HTML..."
         videoUrl:
-          type: string
-          nullable: true
+          type: [string, "null"]
           example: https://youtube.com/embed/xyz
         starterCodeUrl:
-          type: string
-          nullable: true
+          type: [string, "null"]
           example: https://github.com/org/starter-repo
         order:
           type: integer
