@@ -1,3 +1,4 @@
+import xss from "xss";
 import type { Request, Response, NextFunction } from "express";
 import { Submission } from "@starter-kit/shared/db/models/Submission";
 import { SubmissionLink } from "@starter-kit/shared/db/models/SubmissionLink";
@@ -97,7 +98,7 @@ export const submissionController = {
       const submissionLinks = await SubmissionLink.bulkCreate(
         links.map((link: { url: string; type: string }) => ({
           submissionId: submission.id,
-          url: link.url,
+          url: xss(link.url),
           type: link.type,
         })),
       );
@@ -144,7 +145,7 @@ export const submissionController = {
 
       await submission.update({
         score,
-        feedback,
+        feedback: feedback ? xss(feedback) : undefined,
         gradedBy,
         status: "graded",
         gradedAt: new Date(),
