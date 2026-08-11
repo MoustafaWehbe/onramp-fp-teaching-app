@@ -1,4 +1,10 @@
-import { ArrowLeft, CircleAlert, Layers3, RefreshCw } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronRight,
+  CircleAlert,
+  Layers3,
+  RefreshCw,
+} from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { EmptyState } from "../../components/shared/EmptyState";
 import { Badge } from "../../components/ui/badge";
@@ -11,6 +17,7 @@ import {
 } from "../../components/ui/card";
 import { useCourse } from "../../hooks/useCourses";
 import { useAuth } from "../../hooks/useAuth";
+import { useModules } from "../../hooks/useModules";
 import { getApiErrorMessage } from "../../lib/courses-api";
 
 function CourseDetailLoading() {
@@ -28,6 +35,7 @@ export function CourseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const courseQuery = useCourse(id);
+  const modulesQuery = useModules(id);
 
   if (!id) {
     return (
@@ -125,10 +133,69 @@ export function CourseDetailPage() {
         <h2 id="modules-heading" className="text-xl font-semibold">
           Modules
         </h2>
-        <EmptyState
-          icon={<Layers3 className="h-10 w-10" />}
-          message="No modules yet. Course content will appear here when the instructor adds it."
-        />
+        {modulesQuery.isPending ? (
+          <div aria-label="Loading course modules" className="space-y-3">
+            {[0, 1].map((item) => (
+              <div
+                key={item}
+                className="h-20 animate-pulse rounded-lg bg-muted"
+              />
+            ))}
+          </div>
+        ) : modulesQuery.isError ? (
+          <div
+            role="alert"
+            className="rounded-lg border border-destructive/30 bg-destructive/5 p-5"
+          >
+            <div className="flex items-start gap-3">
+              <CircleAlert className="mt-0.5 h-5 w-5 text-destructive" />
+              <div>
+                <p className="font-medium">Modules could not be loaded</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {getApiErrorMessage(modulesQuery.error)}
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-3"
+                  onClick={() => void modulesQuery.refetch()}
+                  disabled={modulesQuery.isFetching}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  {modulesQuery.isFetching ? "Retrying..." : "Retry"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : modulesQuery.data.length === 0 ? (
+          <EmptyState
+            icon={<Layers3 className="h-10 w-10" />}
+            message="No modules yet. Course content will appear here when the instructor adds it."
+          />
+        ) : (
+          <div className="grid gap-3">
+            {modulesQuery.data.map((module, index) => (
+              <Card key={module.id} className="border-border">
+                <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      Module {index + 1}
+                    </p>
+                    <h3 className="mt-1 font-semibold">{module.title}</h3>
+                  </div>
+                  <Link
+                    to={`/courses/${course.id}/modules/${module.id}`}
+                    className={buttonVariants({ variant: "outline" })}
+                  >
+                    Open Module
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

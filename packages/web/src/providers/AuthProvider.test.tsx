@@ -1,16 +1,10 @@
 import { screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { courseKeys } from "../hooks/useCourses";
+import { moduleKeys } from "../hooks/useModules";
 import { apiClient } from "../lib/api-client";
-import {
-  createTestQueryClient,
-  renderWithProviders,
-} from "../test/test-utils";
-import {
-  AuthProvider,
-  useAuthContext,
-  type AuthUser,
-} from "./AuthProvider";
+import { createTestQueryClient, renderWithProviders } from "../test/test-utils";
+import { AuthProvider, useAuthContext, type AuthUser } from "./AuthProvider";
 
 vi.mock("../lib/api-client", () => ({
   apiClient: {
@@ -66,6 +60,12 @@ function renderAuthProvider() {
   queryClient.setQueryData(courseKeys.detail("course-1"), {
     id: "course-1",
   });
+  queryClient.setQueryData(moduleKeys.modules("course-1"), [
+    { id: "module-1" },
+  ]);
+  queryClient.setQueryData(moduleKeys.lesson("module-1", "lesson-1"), {
+    id: "lesson-1",
+  });
 
   const result = renderWithProviders(
     <AuthProvider>
@@ -77,7 +77,7 @@ function renderAuthProvider() {
   return { ...result, queryClient };
 }
 
-describe("AuthProvider course cache isolation", () => {
+describe("AuthProvider learning-data cache isolation", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     getMock.mockResolvedValue({ data: { data: currentUser } } as never);
@@ -89,9 +89,7 @@ describe("AuthProvider course cache isolation", () => {
     } as never);
     const { user, queryClient } = renderAuthProvider();
 
-    expect(
-      await screen.findByText(currentUser.email),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(currentUser.email)).toBeInTheDocument();
     await user.click(
       screen.getByRole("button", { name: "Log in as next user" }),
     );
@@ -100,6 +98,12 @@ describe("AuthProvider course cache isolation", () => {
     expect(queryClient.getQueryData(courseKeys.list())).toBeUndefined();
     expect(
       queryClient.getQueryData(courseKeys.detail("course-1")),
+    ).toBeUndefined();
+    expect(
+      queryClient.getQueryData(moduleKeys.modules("course-1")),
+    ).toBeUndefined();
+    expect(
+      queryClient.getQueryData(moduleKeys.lesson("module-1", "lesson-1")),
     ).toBeUndefined();
   });
 
@@ -116,9 +120,7 @@ describe("AuthProvider course cache isolation", () => {
       }
       const { user, queryClient } = renderAuthProvider();
 
-      expect(
-        await screen.findByText(currentUser.email),
-      ).toBeInTheDocument();
+      expect(await screen.findByText(currentUser.email)).toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: "Log out" }));
 
       await waitFor(() =>
@@ -127,6 +129,12 @@ describe("AuthProvider course cache isolation", () => {
       expect(queryClient.getQueryData(courseKeys.list())).toBeUndefined();
       expect(
         queryClient.getQueryData(courseKeys.detail("course-1")),
+      ).toBeUndefined();
+      expect(
+        queryClient.getQueryData(moduleKeys.modules("course-1")),
+      ).toBeUndefined();
+      expect(
+        queryClient.getQueryData(moduleKeys.lesson("module-1", "lesson-1")),
       ).toBeUndefined();
     },
   );
