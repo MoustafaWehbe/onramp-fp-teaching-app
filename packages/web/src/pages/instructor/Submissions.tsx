@@ -91,6 +91,8 @@ export function SubmissionsPage() {
 
       {coursesQuery.isPending ? (
         <div
+          role="status"
+          aria-busy="true"
           aria-label="Loading instructor courses"
           className="h-10 animate-pulse rounded bg-muted"
         />
@@ -154,7 +156,12 @@ export function SubmissionsPage() {
               </p>
             </div>
           ) : submissionsQuery.isPending ? (
-            <div aria-label="Loading course submissions" className="space-y-3">
+            <div
+              role="status"
+              aria-busy="true"
+              aria-label="Loading course submissions"
+              className="space-y-3"
+            >
               {[0, 1, 2].map((item) => (
                 <div
                   key={item}
@@ -188,6 +195,7 @@ export function SubmissionsPage() {
           ) : (
             <>
               <div
+                role="group"
                 className="flex flex-wrap gap-2"
                 aria-label="Submission filters"
               >

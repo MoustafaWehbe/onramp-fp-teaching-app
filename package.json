@@ -19,8 +19,5 @@
   "engines": {
     "node": ">=20"
   },
-  "packageManager": "npm@10.8.0",
-  "dependencies": {
-    "xss": "^1.0.15"
-  }
+  "packageManager": "npm@10.8.0"
 }

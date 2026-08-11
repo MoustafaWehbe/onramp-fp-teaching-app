@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { act, screen } from "@testing-library/react";
 import { Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiClient } from "../../lib/api-client";
@@ -19,7 +19,7 @@ const course = {
   description: "Build production-ready applications.",
   isPublished: true,
 };
-const module = {
+const courseModule = {
   id: "module-1",
   courseId: course.id,
   title: "React Foundations",
@@ -27,7 +27,7 @@ const module = {
 };
 const milestone = {
   id: "milestone-1",
-  moduleId: module.id,
+  moduleId: courseModule.id,
   title: "Interactive todo app",
   instructions: "Build and deploy a todo app.",
   acceptanceCriteria: "CRUD operations work.",
@@ -58,7 +58,7 @@ function response(data: unknown) {
 function mockReviewHierarchy(submissions = [submission]) {
   getMock.mockImplementation((url) => {
     if (url === "/courses/course-1") return response(course);
-    if (url === "/courses/course-1/modules") return response([module]);
+    if (url === "/courses/course-1/modules") return response([courseModule]);
     if (url === "/modules/module-1/milestones") return response([milestone]);
     if (url === "/milestones/milestone-1/submissions") {
       return response(submissions);
@@ -67,7 +67,10 @@ function mockReviewHierarchy(submissions = [submission]) {
   });
 }
 
-function renderReview(submissionId = submission.id) {
+function renderReview(
+  submissionId = submission.id,
+  search = "?courseId=course-1&moduleId=module-1&milestoneId=milestone-1",
+) {
   return renderWithProviders(
     <Routes>
       <Route
@@ -77,7 +80,7 @@ function renderReview(submissionId = submission.id) {
     </Routes>,
     {
       initialEntries: [
-        `/instructor/submissions/${submissionId}/review?courseId=course-1&moduleId=module-1&milestoneId=milestone-1`,
+        `/instructor/submissions/${submissionId}/review${search}`,
       ],
     },
   );
@@ -106,8 +109,8 @@ describe("ReviewSubmissionPage", () => {
         data: {
           ...submission,
           status: "graded",
-          score: 85,
-          feedback: "Good implementation",
+          score: 92,
+          feedback: "Server-normalized feedback",
           gradedAt: "2026-08-09T12:00:00.000Z",
         },
       },
@@ -127,9 +130,9 @@ describe("ReviewSubmissionPage", () => {
       "Grade saved successfully.",
     );
     expect(screen.getByText("Graded")).toBeInTheDocument();
-    expect(screen.getByText("85/100")).toBeInTheDocument();
+    expect(screen.getByText("92/100")).toBeInTheDocument();
     expect(screen.getByLabelText("Feedback")).toHaveValue(
-      "Good implementation",
+      "Server-normalized feedback",
     );
   });
 
@@ -160,5 +163,86 @@ describe("ReviewSubmissionPage", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Submission not found",
     );
+  });
+
+  it("shows a not-found state when the review context is missing", () => {
+    renderReview(submission.id, "");
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Submission not found");
+    expect(getMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps cached review data and draft values after a background refetch fails", async () => {
+    const { user, queryClient } = renderReview();
+
+    await screen.findByText(/Nour Student/);
+    await user.type(screen.getByLabelText("Score (out of 100)"), "85");
+    await user.type(screen.getByLabelText("Feedback"), "Draft feedback");
+    getMock.mockRejectedValue(new Error("Background refresh failed"));
+
+    await act(async () => {
+      await queryClient.refetchQueries({ type: "active" });
+    });
+
+    expect(screen.getByText(/Nour Student/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Score (out of 100)")).toHaveValue(85);
+    expect(screen.getByLabelText("Feedback")).toHaveValue("Draft feedback");
+    expect(
+      screen.queryByText("Submission could not be loaded"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders unsafe submitted URLs as text instead of links", async () => {
+    const unsafeUrl = "javascript:alert(document.domain)";
+    mockReviewHierarchy([
+      {
+        ...submission,
+        links: [
+          ...submission.links,
+          { id: "link-2", type: "other", url: unsafeUrl },
+        ],
+      },
+    ]);
+
+    renderReview();
+
+    const unsafeText = await screen.findByText(unsafeUrl);
+    expect(unsafeText.closest("a")).toBeNull();
+    expect(
+      screen.getByRole("link", { name: /github.*github.com\/example\/todo/i }),
+    ).toHaveAttribute("href", "https://github.com/example/todo");
+  });
+
+  it("associates validation messages with their grading controls", async () => {
+    const { user } = renderReview();
+
+    await screen.findByText(/Nour Student/);
+    await user.type(screen.getByLabelText("Score (out of 100)"), "-1");
+    await user.type(screen.getByLabelText("Feedback"), "   ");
+
+    expect(screen.getByLabelText("Score (out of 100)")).toHaveAttribute(
+      "aria-describedby",
+      "score-error",
+    );
+    expect(screen.getByLabelText("Feedback")).toHaveAttribute(
+      "aria-describedby",
+      "feedback-error",
+    );
+    expect(document.getElementById("score-error")).toHaveTextContent(
+      "Enter a score between 0 and 100.",
+    );
+    expect(document.getElementById("feedback-error")).toHaveTextContent(
+      "Feedback is required.",
+    );
+  });
+
+  it("exposes its loading skeleton as a busy status", () => {
+    getMock.mockReturnValue(new Promise(() => undefined) as never);
+
+    renderReview();
+
+    expect(
+      screen.getByRole("status", { name: "Loading submission review" }),
+    ).toHaveAttribute("aria-busy", "true");
   });
 });

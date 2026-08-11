@@ -72,6 +72,29 @@ export interface GradeSubmissionInput {
   feedback: string;
 }
 
+const REQUEST_CONCURRENCY = 4;
+
+async function mapWithConcurrency<T, Result>(
+  items: T[],
+  limit: number,
+  mapper: (item: T) => Promise<Result>,
+): Promise<Result[]> {
+  const results = new Array<Result>(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      results[index] = await mapper(items[index]);
+    }
+  }
+
+  const workerCount = Math.min(limit, items.length);
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+  return results;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -235,30 +258,36 @@ export async function getCourseSubmissions(
   course: Course,
 ): Promise<InstructorSubmission[]> {
   const modules = await getModules(course.id);
-  const moduleGroups = await Promise.all(
-    modules.map(async (module) => {
-      const milestones = await getMilestones(module.id);
-      const milestoneGroups = await Promise.all(
-        milestones.map(async (milestone) => {
-          const submissions = await getSubmissions(milestone.id);
-          return submissions.map((submission) => ({
-            ...submission,
-            courseId: course.id,
-            courseTitle: course.title,
-            moduleId: module.id,
-            moduleTitle: module.title,
-            milestoneTitle: milestone.title,
-            instructions: milestone.instructions,
-            acceptanceCriteria: milestone.acceptanceCriteria,
-          }));
-        }),
-      );
-
-      return milestoneGroups.flat();
+  const moduleMilestones = await mapWithConcurrency(
+    modules,
+    REQUEST_CONCURRENCY,
+    async (module) => ({
+      module,
+      milestones: await getMilestones(module.id),
     }),
   );
+  const milestoneContexts = moduleMilestones.flatMap(({ module, milestones }) =>
+    milestones.map((milestone) => ({ module, milestone })),
+  );
+  const milestoneGroups = await mapWithConcurrency(
+    milestoneContexts,
+    REQUEST_CONCURRENCY,
+    async ({ module, milestone }) => {
+      const submissions = await getSubmissions(milestone.id);
+      return submissions.map((submission) => ({
+        ...submission,
+        courseId: course.id,
+        courseTitle: course.title,
+        moduleId: module.id,
+        moduleTitle: module.title,
+        milestoneTitle: milestone.title,
+        instructions: milestone.instructions,
+        acceptanceCriteria: milestone.acceptanceCriteria,
+      }));
+    },
+  );
 
-  return moduleGroups.flat();
+  return milestoneGroups.flat();
 }
 
 export async function gradeSubmission(

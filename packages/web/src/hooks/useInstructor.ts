@@ -73,9 +73,6 @@ function applyGrade<T extends Submission>(
     ...graded,
     student: submission.student,
     links: submission.links,
-    status: "graded",
-    score: variables.score,
-    feedback: variables.feedback,
   };
 }
 

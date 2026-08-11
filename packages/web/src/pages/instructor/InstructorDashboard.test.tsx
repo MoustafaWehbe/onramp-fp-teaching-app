@@ -39,8 +39,8 @@ describe("InstructorDashboard", () => {
     renderWithProviders(<InstructorDashboard />);
 
     expect(
-      screen.getByLabelText("Loading instructor courses"),
-    ).toBeInTheDocument();
+      screen.getByRole("status", { name: "Loading instructor courses" }),
+    ).toHaveAttribute("aria-busy", "true");
     resolveRequest(response([course]));
 
     expect(

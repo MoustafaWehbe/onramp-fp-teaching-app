@@ -17,7 +17,7 @@ const course = {
   description: "Build production-ready applications.",
   isPublished: true,
 };
-const module = {
+const courseModule = {
   id: "module-1",
   courseId: course.id,
   title: "React Foundations",
@@ -25,7 +25,7 @@ const module = {
 };
 const milestone = {
   id: "milestone-1",
-  moduleId: module.id,
+  moduleId: courseModule.id,
   title: "Interactive todo app",
   instructions: "Build and deploy a todo app.",
   acceptanceCriteria: "CRUD operations work.",
@@ -69,7 +69,7 @@ function response(data: unknown) {
 function mockHierarchy(submissions = [pendingSubmission, gradedSubmission]) {
   getMock.mockImplementation((url) => {
     if (url === "/courses") return response([course]);
-    if (url === "/courses/course-1/modules") return response([module]);
+    if (url === "/courses/course-1/modules") return response([courseModule]);
     if (url === "/modules/module-1/milestones") return response([milestone]);
     if (url === "/milestones/milestone-1/submissions") {
       return response(submissions);
@@ -87,6 +87,31 @@ function renderSubmissions() {
 describe("SubmissionsPage", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+  });
+
+  it("exposes course loading as a busy status", () => {
+    getMock.mockReturnValue(new Promise(() => undefined) as never);
+
+    renderSubmissions();
+
+    expect(
+      screen.getByRole("status", { name: "Loading instructor courses" }),
+    ).toHaveAttribute("aria-busy", "true");
+  });
+
+  it("exposes submission loading as a busy status", async () => {
+    getMock.mockImplementation((url) => {
+      if (url === "/courses") return response([course]);
+      return new Promise(() => undefined) as never;
+    });
+
+    renderSubmissions();
+
+    expect(
+      await screen.findByRole("status", {
+        name: "Loading course submissions",
+      }),
+    ).toHaveAttribute("aria-busy", "true");
   });
 
   it("loads and flattens submissions from the real hierarchy endpoints", async () => {
@@ -120,6 +145,10 @@ describe("SubmissionsPage", () => {
     expect(screen.getByText(/Graded Student/)).toBeInTheDocument();
     expect(screen.queryByText(/Nour Student/)).not.toBeInTheDocument();
     expect(screen.getByText("Graded")).toBeInTheDocument();
+    expect(screen.getByText(/Score 91\/100/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("group", { name: "Submission filters" }),
+    ).toBeInTheDocument();
   });
 
   it("shows an empty state for a selected filter", async () => {

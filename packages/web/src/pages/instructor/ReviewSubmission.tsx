@@ -28,7 +28,10 @@ import {
   useModules,
 } from "../../hooks/useInstructor";
 import { getApiErrorMessage } from "../../lib/courses-api";
-import type { SubmissionLinkType } from "../../lib/instructor-api";
+import type {
+  SubmissionLink,
+  SubmissionLinkType,
+} from "../../lib/instructor-api";
 
 function LinkIcon({ type }: { type: SubmissionLinkType }) {
   if (type === "github")
@@ -42,6 +45,45 @@ function linkTypeLabel(type: SubmissionLinkType) {
   if (type === "loom") return "Loom";
   if (type === "deployment") return "Deployment";
   return "Other";
+}
+
+function safeHttpUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:" ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function SubmittedLink({ link }: { link: SubmissionLink }) {
+  const href = safeHttpUrl(link.url);
+  const content = (
+    <>
+      <LinkIcon type={link.type} />
+      <span className="font-medium">{linkTypeLabel(link.type)}</span>
+      <span className="max-w-[200px] truncate text-muted-foreground">
+        {link.url}
+      </span>
+    </>
+  );
+  const className =
+    "inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-sm";
+
+  if (!href) {
+    return <span className={className}>{content}</span>;
+  }
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className={`${className} transition-colors hover:bg-accent`}
+    >
+      {content}
+    </a>
+  );
 }
 
 function SubmissionNotFound({ backTo }: { backTo: string }) {
@@ -94,7 +136,7 @@ export function ReviewSubmissionPage() {
     if (!submission) return;
     setScore(submission.score === undefined ? "" : String(submission.score));
     setFeedback(submission.feedback ?? "");
-  }, [submission?.feedback, submission?.id, submission?.score]);
+  }, [submission]);
 
   const parsedScore = Number(score);
   const scoreIsValid =
@@ -133,7 +175,12 @@ export function ReviewSubmissionPage() {
     submissionsQuery.isPending;
   if (isLoading) {
     return (
-      <div aria-label="Loading submission review" className="space-y-4">
+      <div
+        role="status"
+        aria-busy="true"
+        aria-label="Loading submission review"
+        className="space-y-4"
+      >
         <div className="h-20 animate-pulse rounded-lg bg-muted" />
         <div className="h-64 animate-pulse rounded-lg bg-muted" />
       </div>
@@ -145,7 +192,13 @@ export function ReviewSubmissionPage() {
     modulesQuery.error ??
     milestonesQuery.error ??
     submissionsQuery.error;
-  if (queryError) {
+  const hasCachedData = Boolean(
+    courseQuery.data &&
+    modulesQuery.data &&
+    milestonesQuery.data &&
+    submissionsQuery.data,
+  );
+  if (queryError && !hasCachedData) {
     return (
       <div
         role="alert"
@@ -250,21 +303,7 @@ export function ReviewSubmissionPage() {
             ) : (
               <div className="flex flex-wrap gap-2">
                 {submission.links.map((link) => (
-                  <a
-                    key={link.id ?? link.url}
-                    href={link.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-sm transition-colors hover:bg-accent"
-                  >
-                    <LinkIcon type={link.type} />
-                    <span className="font-medium">
-                      {linkTypeLabel(link.type)}
-                    </span>
-                    <span className="max-w-[200px] truncate text-muted-foreground">
-                      {link.url}
-                    </span>
-                  </a>
+                  <SubmittedLink key={link.id ?? link.url} link={link} />
                 ))}
               </div>
             )}
@@ -297,6 +336,11 @@ export function ReviewSubmissionPage() {
                   value={score}
                   disabled={gradeMutation.isPending}
                   aria-invalid={score.trim() !== "" && !scoreIsValid}
+                  aria-describedby={
+                    score.trim() !== "" && !scoreIsValid
+                      ? "score-error"
+                      : undefined
+                  }
                   onChange={(event) => {
                     setScore(event.target.value);
                     gradeMutation.reset();
@@ -304,7 +348,7 @@ export function ReviewSubmissionPage() {
                   placeholder="0–100"
                 />
                 {score.trim() !== "" && !scoreIsValid && (
-                  <p className="text-xs text-destructive">
+                  <p id="score-error" className="text-xs text-destructive">
                     Enter a score between 0 and 100.
                   </p>
                 )}
@@ -317,6 +361,11 @@ export function ReviewSubmissionPage() {
                   value={feedback}
                   disabled={gradeMutation.isPending}
                   aria-invalid={feedback.length > 0 && !feedbackIsValid}
+                  aria-describedby={
+                    feedback.length > 0 && !feedbackIsValid
+                      ? "feedback-error"
+                      : undefined
+                  }
                   onChange={(event) => {
                     setFeedback(event.target.value);
                     gradeMutation.reset();
@@ -324,7 +373,7 @@ export function ReviewSubmissionPage() {
                   placeholder="Write your feedback here..."
                 />
                 {feedback.length > 0 && !feedbackIsValid && (
-                  <p className="text-xs text-destructive">
+                  <p id="feedback-error" className="text-xs text-destructive">
                     Feedback is required.
                   </p>
                 )}

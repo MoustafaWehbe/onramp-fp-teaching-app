@@ -15,6 +15,8 @@ import { getApiErrorMessage } from "../../lib/courses-api";
 function DashboardLoading() {
   return (
     <div
+      role="status"
+      aria-busy="true"
       aria-label="Loading instructor courses"
       className="grid gap-5 lg:grid-cols-2"
     >
