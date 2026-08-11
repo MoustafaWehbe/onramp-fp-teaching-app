@@ -1,8 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
 import { Submission } from "@starter-kit/shared/db/models/Submission";
 import { SubmissionLink } from "@starter-kit/shared/db/models/SubmissionLink";
-import { Enrollment } from "@starter-kit/shared/db/models/Enrollment";
 import { Milestone } from "@starter-kit/shared/db/models/Milestone";
+import { User } from "@starter-kit/shared/db/models/User";
 
 // URL validation patterns
 const URL_PATTERNS: Record<string, RegExp> = {
@@ -24,7 +24,7 @@ export const submissionController = {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const { milestoneId } = req.params;
+      const milestoneId = req.params.milestoneId as string;
       const userId = req.user!.userId;
       const role = req.user!.role;
 
@@ -33,7 +33,14 @@ export const submissionController = {
         // Instructor sees all submissions for this milestone
         submissions = await Submission.findAll({
           where: { milestoneId },
-          include: [{ model: SubmissionLink, as: "links" }],
+          include: [
+            { model: SubmissionLink, as: "links" },
+            {
+              model: User,
+              as: "student",
+              attributes: ["id", "name", "email"],
+            },
+          ],
         });
       } else {
         // Student sees only their own submissions
@@ -55,7 +62,7 @@ export const submissionController = {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const { milestoneId } = req.params;
+      const milestoneId = req.params.milestoneId as string;
       const studentId = req.user!.userId;
       const { links } = req.body;
 
@@ -73,7 +80,9 @@ export const submissionController = {
       // Validate each URL
       for (const link of links) {
         if (!validateUrl(link.url, link.type)) {
-          res.status(400).json({ error: `Invalid URL for type ${link.type}: ${link.url}` });
+          res
+            .status(400)
+            .json({ error: `Invalid URL for type ${link.type}: ${link.url}` });
           return;
         }
       }
@@ -102,7 +111,9 @@ export const submissionController = {
         })),
       );
 
-      res.status(201).json({ data: { ...submission.toJSON(), links: submissionLinks } });
+      res
+        .status(201)
+        .json({ data: { ...submission.toJSON(), links: submissionLinks } });
     } catch (err) {
       next(err);
     }

@@ -23,12 +23,12 @@ export const milestoneController = {
     next: NextFunction,
   ): Promise<void> {
     try {
-     const milestone = await Milestone.findOne({
-      where: {
-        id: req.params.id,
-        moduleId: req.params.moduleId,
-      },
-     });
+      const milestone = await Milestone.findOne({
+        where: {
+          id: req.params.id,
+          moduleId: req.params.moduleId as string,
+        },
+      });
       if (!milestone) {
         res.status(404).json({ error: "Milestone not found" });
         return;
@@ -46,7 +46,7 @@ export const milestoneController = {
   ): Promise<void> {
     try {
       const milestone = await Milestone.create({
-        moduleId: req.params.moduleId,
+        moduleId: req.params.moduleId as string,
         title: req.body.title,
         instructions: req.body.instructions,
         acceptanceCriteria: req.body.acceptanceCriteria,
@@ -63,12 +63,12 @@ export const milestoneController = {
     next: NextFunction,
   ): Promise<void> {
     try {
-     const milestone = await Milestone.findOne({
-      where: {
-        id: req.params.id,
-        moduleId: req.params.moduleId,
-      },
-     });
+      const milestone = await Milestone.findOne({
+        where: {
+          id: req.params.id,
+          moduleId: req.params.moduleId,
+        },
+      });
       if (!milestone) {
         res.status(404).json({ error: "Milestone not found" });
         return;
@@ -90,12 +90,12 @@ export const milestoneController = {
     next: NextFunction,
   ): Promise<void> {
     try {
-     const milestone = await Milestone.findOne({
-      where: {
-        id: req.params.id,
-        moduleId: req.params.moduleId,
-      },
-     });
+      const milestone = await Milestone.findOne({
+        where: {
+          id: req.params.id,
+          moduleId: req.params.moduleId,
+        },
+      });
       if (!milestone) {
         res.status(404).json({ error: "Milestone not found" });
         return;

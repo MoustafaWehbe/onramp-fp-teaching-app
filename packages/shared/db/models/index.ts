@@ -4,11 +4,24 @@ import { Session } from "./Session";
 import { RefreshToken } from "./RefreshToken";
 import { Course } from "./Course";
 import { Enrollment } from "./Enrollment";
+import { Lesson } from "./Lesson";
 import { Milestone } from "./Milestone";
+import { Module } from "./Module";
 import { Submission } from "./Submission";
 import { SubmissionLink } from "./SubmissionLink";
 
-export { User, Session, RefreshToken, Course, Enrollment, Milestone, Submission, SubmissionLink };
+export {
+  User,
+  Session,
+  RefreshToken,
+  Course,
+  Enrollment,
+  Lesson,
+  Milestone,
+  Module,
+  Submission,
+  SubmissionLink,
+};
 
 export function initModels(sequelize: Sequelize): void {
   User.initModel(sequelize);
@@ -16,41 +29,59 @@ export function initModels(sequelize: Sequelize): void {
   RefreshToken.initModel(sequelize);
   Course.initModel(sequelize);
   Enrollment.initModel(sequelize);
+  Module.initModel(sequelize);
+  Lesson.initModel(sequelize);
   Milestone.initModel(sequelize);
   Submission.initModel(sequelize);
   SubmissionLink.initModel(sequelize);
 
- 
   User.hasMany(Session, { foreignKey: "userId", as: "sessions" });
   Session.belongsTo(User, { foreignKey: "userId", as: "user" });
 
   User.hasMany(RefreshToken, { foreignKey: "userId", as: "refreshTokens" });
   RefreshToken.belongsTo(User, { foreignKey: "userId", as: "user" });
 
-  Session.hasMany(RefreshToken, { foreignKey: "sessionId", as: "refreshTokens" });
+  Session.hasMany(RefreshToken, {
+    foreignKey: "sessionId",
+    as: "refreshTokens",
+  });
   RefreshToken.belongsTo(Session, { foreignKey: "sessionId", as: "session" });
 
-  
   User.hasMany(Course, { foreignKey: "instructorId", as: "courses" });
   Course.belongsTo(User, { foreignKey: "instructorId", as: "instructor" });
 
-  
   User.hasMany(Enrollment, { foreignKey: "studentId", as: "enrollments" });
   Enrollment.belongsTo(User, { foreignKey: "studentId", as: "student" });
 
   Course.hasMany(Enrollment, { foreignKey: "courseId", as: "enrollments" });
   Enrollment.belongsTo(Course, { foreignKey: "courseId", as: "course" });
 
-  
-  Milestone.belongsTo(Course, { foreignKey: "moduleId", as: "module" });
+  Course.hasMany(Module, { foreignKey: "courseId", as: "modules" });
+  Module.belongsTo(Course, { foreignKey: "courseId", as: "course" });
 
-  
-  Submission.belongsTo(Milestone, { foreignKey: "milestoneId", as: "milestone" });
+  Module.hasMany(Lesson, { foreignKey: "moduleId", as: "lessons" });
+  Lesson.belongsTo(Module, { foreignKey: "moduleId", as: "module" });
+
+  Module.hasMany(Milestone, { foreignKey: "moduleId", as: "milestones" });
+  Milestone.belongsTo(Module, { foreignKey: "moduleId", as: "module" });
+
+  Submission.belongsTo(Milestone, {
+    foreignKey: "milestoneId",
+    as: "milestone",
+  });
   Submission.belongsTo(User, { foreignKey: "studentId", as: "student" });
   Submission.belongsTo(User, { foreignKey: "gradedBy", as: "grader" });
-  Milestone.hasMany(Submission, { foreignKey: "milestoneId", as: "submissions" });
+  Milestone.hasMany(Submission, {
+    foreignKey: "milestoneId",
+    as: "submissions",
+  });
 
-  
-  SubmissionLink.belongsTo(Submission, { foreignKey: "submissionId", as: "submission" });
-  Submission.hasMany(SubmissionLink, { foreignKey: "submissionId", as: "links" });
+  SubmissionLink.belongsTo(Submission, {
+    foreignKey: "submissionId",
+    as: "submission",
+  });
+  Submission.hasMany(SubmissionLink, {
+    foreignKey: "submissionId",
+    as: "links",
+  });
 }
