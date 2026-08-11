@@ -111,4 +111,82 @@ describe("course route compatibility", () => {
       expect(screen.getByTestId("location")).toHaveTextContent("/courses"),
     );
   });
+
+  it("allows a student to access the real gradebook route", async () => {
+    setAuthenticatedUser("student");
+
+    renderWithProviders(
+      <>
+        <AppRoutes />
+        <LocationProbe />
+      </>,
+      { initialEntries: ["/grades"] },
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "My Grades" }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("location")).toHaveTextContent("/grades");
+  });
+
+  it("allows a student to access a milestone submission route", () => {
+    setAuthenticatedUser("student");
+
+    renderWithProviders(
+      <>
+        <AppRoutes />
+        <LocationProbe />
+      </>,
+      { initialEntries: ["/milestones/milestone-1/submit"] },
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Submit milestone" }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/milestones/milestone-1/submit",
+    );
+  });
+
+  it("redirects an instructor away from milestone submission", async () => {
+    setAuthenticatedUser("instructor");
+
+    renderWithProviders(
+      <>
+        <AppRoutes />
+        <LocationProbe />
+      </>,
+      { initialEntries: ["/milestones/milestone-1/submit"] },
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("location")).toHaveTextContent("/courses"),
+    );
+  });
+
+  it("redirects a student away from instructor submission review", async () => {
+    setAuthenticatedUser("student");
+
+    renderWithProviders(
+      <>
+        <AppRoutes />
+        <LocationProbe />
+      </>,
+      { initialEntries: ["/instructor/submissions/submission-1/review"] },
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("location")).toHaveTextContent("/courses"),
+    );
+  });
+
+  it("does not preserve the obsolete generic submissions placeholder", () => {
+    setAuthenticatedUser("student");
+
+    renderWithProviders(<AppRoutes />, {
+      initialEntries: ["/submissions"],
+    });
+
+    expect(screen.getByText("Page not found")).toBeInTheDocument();
+  });
 });

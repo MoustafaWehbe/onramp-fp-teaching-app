@@ -6,6 +6,7 @@ module.exports = {
   testMatch: ["<rootDir>/tests/**/*.test.ts"],
   setupFiles: ["<rootDir>/tests/setup.ts"],
   moduleNameMapper: {
+    "^@starter-kit/shared/db/(.*)$": "<rootDir>/../shared/db/$1",
     "^@starter-kit/shared$": "<rootDir>/../shared/src/index.ts",
     "^@starter-kit/shared/(.*)$": "<rootDir>/../shared/src/$1",
   },

@@ -7,6 +7,7 @@ import {
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { courseKeys } from "../hooks/useCourses";
+import { submissionKeys } from "../hooks/useSubmissions";
 import { apiClient } from "../lib/api-client";
 
 export type UserRole = "instructor" | "student";
@@ -47,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { user: AuthUser };
     }>("/auth/login", { email, password });
     queryClient.removeQueries({ queryKey: courseKeys.all });
+    queryClient.removeQueries({ queryKey: submissionKeys.all });
     setUser(data.data.user);
   }
 
@@ -63,6 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await apiClient.post("/auth/logout");
     } finally {
       queryClient.removeQueries({ queryKey: courseKeys.all });
+      queryClient.removeQueries({ queryKey: submissionKeys.all });
       setUser(null);
     }
   }

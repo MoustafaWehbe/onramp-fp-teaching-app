@@ -1,16 +1,10 @@
 import { screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { courseKeys } from "../hooks/useCourses";
+import { submissionKeys } from "../hooks/useSubmissions";
 import { apiClient } from "../lib/api-client";
-import {
-  createTestQueryClient,
-  renderWithProviders,
-} from "../test/test-utils";
-import {
-  AuthProvider,
-  useAuthContext,
-  type AuthUser,
-} from "./AuthProvider";
+import { createTestQueryClient, renderWithProviders } from "../test/test-utils";
+import { AuthProvider, useAuthContext, type AuthUser } from "./AuthProvider";
 
 vi.mock("../lib/api-client", () => ({
   apiClient: {
@@ -66,6 +60,7 @@ function renderAuthProvider() {
   queryClient.setQueryData(courseKeys.detail("course-1"), {
     id: "course-1",
   });
+  queryClient.setQueryData(submissionKeys.grades(), [{ id: "submission-1" }]);
 
   const result = renderWithProviders(
     <AuthProvider>
@@ -77,21 +72,19 @@ function renderAuthProvider() {
   return { ...result, queryClient };
 }
 
-describe("AuthProvider course cache isolation", () => {
+describe("AuthProvider learning-data cache isolation", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     getMock.mockResolvedValue({ data: { data: currentUser } } as never);
   });
 
-  it("removes cached course lists and details after a successful login", async () => {
+  it("removes cached courses and grades after a successful login", async () => {
     postMock.mockResolvedValueOnce({
       data: { data: { user: nextUser } },
     } as never);
     const { user, queryClient } = renderAuthProvider();
 
-    expect(
-      await screen.findByText(currentUser.email),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(currentUser.email)).toBeInTheDocument();
     await user.click(
       screen.getByRole("button", { name: "Log in as next user" }),
     );
@@ -101,13 +94,14 @@ describe("AuthProvider course cache isolation", () => {
     expect(
       queryClient.getQueryData(courseKeys.detail("course-1")),
     ).toBeUndefined();
+    expect(queryClient.getQueryData(submissionKeys.grades())).toBeUndefined();
   });
 
   it.each([
     ["successful", undefined],
     ["failed", new Error("Network unavailable")],
   ])(
-    "removes cached courses after a %s logout",
+    "removes cached courses and grades after a %s logout",
     async (_scenario, logoutError) => {
       if (logoutError) {
         postMock.mockRejectedValueOnce(logoutError);
@@ -116,9 +110,7 @@ describe("AuthProvider course cache isolation", () => {
       }
       const { user, queryClient } = renderAuthProvider();
 
-      expect(
-        await screen.findByText(currentUser.email),
-      ).toBeInTheDocument();
+      expect(await screen.findByText(currentUser.email)).toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: "Log out" }));
 
       await waitFor(() =>
@@ -128,6 +120,7 @@ describe("AuthProvider course cache isolation", () => {
       expect(
         queryClient.getQueryData(courseKeys.detail("course-1")),
       ).toBeUndefined();
+      expect(queryClient.getQueryData(submissionKeys.grades())).toBeUndefined();
     },
   );
 });

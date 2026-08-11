@@ -1,6 +1,7 @@
 import { Badge } from "../ui/badge";
 import { cn } from "../../lib/utils";
-import type { Status } from "../../lib/platform-data";
+
+type Status = "draft" | "submitted" | "graded";
 
 const statusStyles: Record<Status, { label: string; className: string }> = {
   draft: {
@@ -37,4 +38,3 @@ export function StatusBadge({
     </Badge>
   );
 }
-

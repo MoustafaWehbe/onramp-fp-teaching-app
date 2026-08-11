@@ -2,8 +2,9 @@ import xss from "xss";
 import type { Request, Response, NextFunction } from "express";
 import { Submission } from "@starter-kit/shared/db/models/Submission";
 import { SubmissionLink } from "@starter-kit/shared/db/models/SubmissionLink";
-import { Enrollment } from "@starter-kit/shared/db/models/Enrollment";
 import { Milestone } from "@starter-kit/shared/db/models/Milestone";
+import { Module } from "@starter-kit/shared/db/models/Module";
+import { Course } from "@starter-kit/shared/db/models/Course";
 
 const URL_PATTERNS: Record<string, RegExp> = {
   github: /^https?:\/\/(?:www\.)?github\.com\/.+/,
@@ -114,7 +115,7 @@ export const submissionController = {
     }
   },
 
-    async gradeSubmission(
+  async gradeSubmission(
     req: Request,
     res: Response,
     next: NextFunction,
@@ -132,10 +133,12 @@ export const submissionController = {
       }
 
       const submission = await Submission.findByPk(id as string, {
-        include: [{ 
-          model: Milestone, 
-          as: "milestone",
-        }],
+        include: [
+          {
+            model: Milestone,
+            as: "milestone",
+          },
+        ],
       });
 
       if (!submission) {
@@ -167,7 +170,29 @@ export const submissionController = {
 
       const submissions = await Submission.findAll({
         where: { studentId, status: "graded" },
-        include: [{ model: SubmissionLink, as: "links" }],
+        include: [
+          { model: SubmissionLink, as: "links" },
+          {
+            model: Milestone,
+            as: "milestone",
+            attributes: ["id", "title"],
+            include: [
+              {
+                model: Module,
+                as: "module",
+                attributes: ["id", "title"],
+                include: [
+                  {
+                    model: Course,
+                    as: "course",
+                    attributes: ["id", "title"],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        order: [["gradedAt", "DESC"]],
       });
 
       res.json({ data: submissions });

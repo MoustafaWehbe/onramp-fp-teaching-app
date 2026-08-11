@@ -18,7 +18,6 @@ import { ModuleDetails } from "../pages/modules/ModuleDetails";
 import { GradesPage } from "../pages/student/Grades";
 import { StudentProfilePage } from "../pages/student/Profile";
 import { SubmitMilestonePage } from "../pages/student/SubmitMilestone";
-import { Submissions } from "../pages/submissions/Submissions";
 import { NotFound } from "../pages/NotFound";
 
 export function AppRoutes() {
@@ -45,8 +44,6 @@ export function AppRoutes() {
 
           <Route path="/modules/:id" element={<ModuleDetails />} />
           <Route path="/lessons/:id" element={<LessonDetails />} />
-          <Route path="/submissions" element={<Submissions />} />
-
           <Route element={<RoleRoute allow="student" redirectTo="/courses" />}>
             <Route path="/grades" element={<GradesPage />} />
             <Route path="/profile" element={<StudentProfilePage />} />
