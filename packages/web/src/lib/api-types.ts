@@ -495,6 +495,17 @@ export interface components {
              */
             type: "github" | "loom" | "deployment" | "other";
         };
+        SubmissionStudent: {
+            /** Format: uuid */
+            id?: string;
+            /** @example Alice Smith */
+            name?: string;
+            /**
+             * Format: email
+             * @example alice@example.com
+             */
+            email?: string;
+        };
         Submission: {
             /** Format: uuid */
             id?: string;
@@ -502,6 +513,7 @@ export interface components {
             milestoneId?: string;
             /** Format: uuid */
             studentId?: string;
+            student?: components["schemas"]["SubmissionStudent"];
             /** Format: uuid */
             gradedBy?: string;
             /**

@@ -11,7 +11,19 @@ import { SubmissionLink } from "./SubmissionLink";
 import { Module } from "./Module";
 import { Lesson } from "./Lesson";
 
-export { User, Session, RefreshToken, Course, Enrollment, Milestone, MilestoneLesson, Submission, SubmissionLink, Module, Lesson };
+export {
+  User,
+  Session,
+  RefreshToken,
+  Course,
+  Enrollment,
+  Milestone,
+  MilestoneLesson,
+  Submission,
+  SubmissionLink,
+  Module,
+  Lesson,
+};
 
 export function initModels(sequelize: Sequelize): void {
   User.initModel(sequelize);
@@ -30,7 +42,10 @@ export function initModels(sequelize: Sequelize): void {
   Session.belongsTo(User, { foreignKey: "userId", as: "user" });
   User.hasMany(RefreshToken, { foreignKey: "userId", as: "refreshTokens" });
   RefreshToken.belongsTo(User, { foreignKey: "userId", as: "user" });
-  Session.hasMany(RefreshToken, { foreignKey: "sessionId", as: "refreshTokens" });
+  Session.hasMany(RefreshToken, {
+    foreignKey: "sessionId",
+    as: "refreshTokens",
+  });
   RefreshToken.belongsTo(Session, { foreignKey: "sessionId", as: "session" });
 
   User.hasMany(Course, { foreignKey: "instructorId", as: "courses" });
@@ -50,14 +65,34 @@ export function initModels(sequelize: Sequelize): void {
   Milestone.belongsTo(Module, { foreignKey: "moduleId", as: "module" });
   Module.hasMany(Milestone, { foreignKey: "moduleId", as: "milestones" });
 
-  Milestone.belongsToMany(Lesson, { through: MilestoneLesson, foreignKey: "milestoneId", as: "lessons" });
-  Lesson.belongsToMany(Milestone, { through: MilestoneLesson, foreignKey: "lessonId", as: "milestones" });
+  Milestone.belongsToMany(Lesson, {
+    through: MilestoneLesson,
+    foreignKey: "milestoneId",
+    as: "lessons",
+  });
+  Lesson.belongsToMany(Milestone, {
+    through: MilestoneLesson,
+    foreignKey: "lessonId",
+    as: "milestones",
+  });
 
-  Submission.belongsTo(Milestone, { foreignKey: "milestoneId", as: "milestone" });
+  Submission.belongsTo(Milestone, {
+    foreignKey: "milestoneId",
+    as: "milestone",
+  });
   Submission.belongsTo(User, { foreignKey: "studentId", as: "student" });
   Submission.belongsTo(User, { foreignKey: "gradedBy", as: "grader" });
-  Milestone.hasMany(Submission, { foreignKey: "milestoneId", as: "submissions" });
+  Milestone.hasMany(Submission, {
+    foreignKey: "milestoneId",
+    as: "submissions",
+  });
 
-  SubmissionLink.belongsTo(Submission, { foreignKey: "submissionId", as: "submission" });
-  Submission.hasMany(SubmissionLink, { foreignKey: "submissionId", as: "links" });
+  SubmissionLink.belongsTo(Submission, {
+    foreignKey: "submissionId",
+    as: "submission",
+  });
+  Submission.hasMany(SubmissionLink, {
+    foreignKey: "submissionId",
+    as: "links",
+  });
 }

@@ -9,8 +9,10 @@ export interface ModuleAttributes {
   updatedAt?: Date;
 }
 
-export interface ModuleCreationAttributes
-  extends Optional<ModuleAttributes, "id" | "order"> {}
+export interface ModuleCreationAttributes extends Optional<
+  ModuleAttributes,
+  "id" | "order"
+> {}
 
 export class Module
   extends Model<ModuleAttributes, ModuleCreationAttributes>
