@@ -43,8 +43,14 @@ export function AppRoutes() {
           <Route path="/courses" element={<CoursesPage />} />
           <Route path="/courses/:id" element={<CourseDetailPage />} />
 
-          <Route path="/modules/:id" element={<ModuleDetails />} />
-          <Route path="/lessons/:id" element={<LessonDetails />} />
+          <Route
+            path="/courses/:courseId/modules/:moduleId"
+            element={<ModuleDetails />}
+          />
+          <Route
+            path="/courses/:courseId/modules/:moduleId/lessons/:lessonId"
+            element={<LessonDetails />}
+          />
           <Route path="/submissions" element={<Submissions />} />
 
           <Route element={<RoleRoute allow="student" redirectTo="/courses" />}>

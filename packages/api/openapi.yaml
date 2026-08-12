@@ -142,6 +142,7 @@ components:
 
     Module:
       type: object
+      required: [id, courseId, title, order]
       properties:
         id:
           type: string
@@ -175,6 +176,7 @@ components:
 
     Lesson:
       type: object
+      required: [id, moduleId, title, content, videoUrl, starterCodeUrl, order]
       properties:
         id:
           type: string
@@ -186,13 +188,13 @@ components:
           type: string
           example: HTML Basics
         content:
-          type: string
+          type: [string, "null"]
           example: "# HTML Basics\n\nLearn the fundamentals of HTML..."
         videoUrl:
-          type: string
+          type: [string, "null"]
           example: https://youtube.com/embed/xyz
         starterCodeUrl:
-          type: string
+          type: [string, "null"]
           example: https://github.com/org/starter-repo
         order:
           type: integer
@@ -884,6 +886,49 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /courses/{courseId}/modules/{moduleId}:
+    get:
+      tags: [Modules]
+      summary: Get a module by ID
+      operationId: getModule
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: moduleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Module details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Module"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Module not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   # ─── Lessons ─────────────────────────────────────────────────────────────────
   /modules/{moduleId}/lessons:
     get:
@@ -954,6 +999,49 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
           description: Forbidden - instructor only
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /modules/{moduleId}/lessons/{lessonId}:
+    get:
+      tags: [Lessons]
+      summary: Get a lesson by ID
+      operationId: getLesson
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: moduleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: lessonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Lesson details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Lesson"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Lesson not found
           content:
             application/json:
               schema:

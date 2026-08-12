@@ -167,6 +167,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/courses/{courseId}/modules/{moduleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a module by ID */
+        get: operations["getModule"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/modules/{moduleId}/lessons": {
         parameters: {
             query?: never;
@@ -179,6 +196,23 @@ export interface paths {
         put?: never;
         /** Create a lesson (instructor only) */
         post: operations["createLesson"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/modules/{moduleId}/lessons/{lessonId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a lesson by ID */
+        get: operations["getLesson"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -379,13 +413,13 @@ export interface components {
         };
         Module: {
             /** Format: uuid */
-            id?: string;
+            id: string;
             /** Format: uuid */
-            courseId?: string;
+            courseId: string;
             /** @example Frontend Module */
-            title?: string;
+            title: string;
             /** @example 1 */
-            order?: number;
+            order: number;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -399,23 +433,23 @@ export interface components {
         };
         Lesson: {
             /** Format: uuid */
-            id?: string;
+            id: string;
             /** Format: uuid */
-            moduleId?: string;
+            moduleId: string;
             /** @example HTML Basics */
-            title?: string;
+            title: string;
             /**
              * @example # HTML Basics
              *
              *     Learn the fundamentals of HTML...
              */
-            content?: string;
+            content: string | null;
             /** @example https://youtube.com/embed/xyz */
-            videoUrl?: string;
+            videoUrl: string | null;
             /** @example https://github.com/org/starter-repo */
-            starterCodeUrl?: string;
+            starterCodeUrl: string | null;
             /** @example 1 */
-            order?: number;
+            order: number;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -1097,6 +1131,49 @@ export interface operations {
             };
         };
     };
+    getModule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseId: string;
+                moduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Module details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Module"];
+                    };
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Module not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     getLessons: {
         parameters: {
             query?: never;
@@ -1167,6 +1244,49 @@ export interface operations {
             };
             /** @description Forbidden - instructor only */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getLesson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                moduleId: string;
+                lessonId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lesson details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Lesson"];
+                    };
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Lesson not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

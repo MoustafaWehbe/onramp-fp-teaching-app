@@ -5,8 +5,9 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { courseKeys } from "../hooks/useCourses";
+import { moduleKeys } from "../hooks/useModules";
 import { apiClient } from "../lib/api-client";
 
 export type UserRole = "instructor" | "student";
@@ -28,6 +29,11 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function clearUserScopedQueries(queryClient: QueryClient): void {
+  queryClient.removeQueries({ queryKey: courseKeys.all });
+  queryClient.removeQueries({ queryKey: moduleKeys.all });
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -46,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data } = await apiClient.post<{
       data: { user: AuthUser };
     }>("/auth/login", { email, password });
-    queryClient.removeQueries({ queryKey: courseKeys.all });
+    clearUserScopedQueries(queryClient);
     setUser(data.data.user);
   }
 
@@ -62,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await apiClient.post("/auth/logout");
     } finally {
-      queryClient.removeQueries({ queryKey: courseKeys.all });
+      clearUserScopedQueries(queryClient);
       setUser(null);
     }
   }

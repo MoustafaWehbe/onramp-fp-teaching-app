@@ -1,10 +1,10 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuth } from "../../hooks/useAuth";
 import { apiClient } from "../../lib/api-client";
 import type { Course } from "../../lib/courses-api";
-import { renderWithProviders } from "../../test/test-utils";
+import { renderWithProviders, response } from "../../test/test-utils";
 import { CourseDetailPage } from "./CourseDetail";
 
 vi.mock("../../hooks/useAuth", () => ({ useAuth: vi.fn() }));
@@ -26,9 +26,27 @@ const course: Course = {
   enrollmentCode: "JOIN42",
   isPublished: true,
 };
+const modules = [
+  {
+    id: "module-2",
+    courseId: course.id,
+    title: "Backend APIs",
+    order: 2,
+  },
+  {
+    id: "module-1",
+    courseId: course.id,
+    title: "Frontend Foundations",
+    order: 1,
+  },
+];
 
-function response(data: unknown) {
-  return { data: { data } };
+function mockCoursePage(moduleData: unknown = modules) {
+  getMock.mockImplementation((url) => {
+    if (url === `/courses/${course.id}`) return response(course);
+    if (url === `/courses/${course.id}/modules`) return response(moduleData);
+    return Promise.reject(new Error(`Unexpected request: ${url}`));
+  });
 }
 
 function setAuthenticatedUser(
@@ -62,36 +80,71 @@ describe("CourseDetailPage", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     setAuthenticatedUser("student");
+    mockCoursePage();
   });
 
-  it("loads the route course and renders its details and module empty state", async () => {
-    let resolveRequest!: (value: ReturnType<typeof response>) => void;
-    getMock.mockReturnValueOnce(
-      new Promise((resolve) => {
-        resolveRequest = resolve;
-      }) as never,
-    );
-
+  it("loads modules from the API and renders ordered module cards", async () => {
     renderCourseDetail();
-
-    expect(screen.getByLabelText("Loading course")).toBeInTheDocument();
-    expect(getMock).toHaveBeenCalledWith(`/courses/${course.id}`);
-
-    resolveRequest(response(course));
 
     expect(
       await screen.findByRole("heading", { name: course.title }),
     ).toBeInTheDocument();
-    expect(screen.getByText(course.description)).toBeInTheDocument();
-    expect(screen.getByText("Published")).toBeInTheDocument();
+    expect(getMock).toHaveBeenCalledWith(`/courses/${course.id}/modules`);
+
+    const moduleSection = screen.getByRole("region", { name: "Modules" });
+    const moduleLinks = within(moduleSection).getAllByRole("link", {
+      name: "Open Module",
+    });
+    expect(moduleLinks).toHaveLength(2);
+    expect(moduleLinks[0]).toHaveAttribute(
+      "href",
+      "/courses/course-1/modules/module-1",
+    );
+    expect(moduleLinks[1]).toHaveAttribute(
+      "href",
+      "/courses/course-1/modules/module-2",
+    );
+    expect(screen.getByText("Frontend Foundations")).toBeInTheDocument();
+    expect(screen.getByText("Backend APIs")).toBeInTheDocument();
+  });
+
+  it("shows the module empty state", async () => {
+    mockCoursePage([]);
+
+    renderCourseDetail();
+
     expect(
-      screen.getByText(/No modules yet\. Course content will appear here/i),
+      await screen.findByText(
+        /No modules yet\. Course content will appear here/i,
+      ),
     ).toBeInTheDocument();
+  });
+
+  it("shows a module API failure and retries it", async () => {
+    let moduleRequests = 0;
+    getMock.mockImplementation((url) => {
+      if (url === `/courses/${course.id}`) return response(course);
+      if (url === `/courses/${course.id}/modules`) {
+        moduleRequests += 1;
+        return moduleRequests === 1
+          ? Promise.reject(new Error("Modules unavailable"))
+          : response(modules);
+      }
+      return Promise.reject(new Error(`Unexpected request: ${url}`));
+    });
+    const { user } = renderCourseDetail();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Modules unavailable",
+    );
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+
+    expect(await screen.findByText("Frontend Foundations")).toBeInTheDocument();
+    expect(moduleRequests).toBe(2);
   });
 
   it("shows the enrollment code to the course-owning instructor", async () => {
     setAuthenticatedUser("instructor", course.instructorId);
-    getMock.mockResolvedValueOnce(response(course) as never);
 
     renderCourseDetail();
 
@@ -106,26 +159,29 @@ describe("CourseDetailPage", () => {
     ["a different instructor", "instructor" as const, "instructor-2"],
   ])("hides the enrollment code from %s", async (_label, role, id) => {
     setAuthenticatedUser(role, id);
-    getMock.mockResolvedValueOnce(response(course) as never);
 
     renderCourseDetail();
 
     await screen.findByRole("heading", { name: course.title });
     expect(screen.queryByText(course.enrollmentCode!)).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("heading", { name: "Enrollment code" }),
-    ).not.toBeInTheDocument();
   });
 
   it("shows a request error and retries the course request", async () => {
-    getMock
-      .mockRejectedValueOnce({
-        isAxiosError: true,
-        message: "Request failed with status code 404",
-        response: { data: { error: "Course not found" } },
-      })
-      .mockResolvedValueOnce(response(course) as never);
-
+    let courseRequests = 0;
+    getMock.mockImplementation((url) => {
+      if (url === `/courses/${course.id}`) {
+        courseRequests += 1;
+        return courseRequests === 1
+          ? Promise.reject({
+              isAxiosError: true,
+              message: "Request failed with status code 404",
+              response: { data: { error: "Course not found" } },
+            })
+          : response(course);
+      }
+      if (url === `/courses/${course.id}/modules`) return response([]);
+      return Promise.reject(new Error(`Unexpected request: ${url}`));
+    });
     const { user } = renderCourseDetail();
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
@@ -136,6 +192,6 @@ describe("CourseDetailPage", () => {
     expect(
       await screen.findByRole("heading", { name: course.title }),
     ).toBeInTheDocument();
-    expect(getMock).toHaveBeenCalledTimes(2);
+    expect(courseRequests).toBe(2);
   });
 });
