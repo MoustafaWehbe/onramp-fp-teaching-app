@@ -82,7 +82,7 @@ describe("submissionController.gradeSubmission", () => {
   });
 
   it("loads only the milestone summary fields declared by the API contract", async () => {
-    const findByPk = jest.spyOn(Submission, "findByPk").mockResolvedValue(null);
+    const findOne = jest.spyOn(Submission, "findOne").mockResolvedValue(null);
     const request = {
       params: { id: "submission-1" },
       body: { score: 90, feedback: "Good work" },
@@ -93,12 +93,30 @@ describe("submissionController.gradeSubmission", () => {
 
     await submissionController.gradeSubmission(request, response, next);
 
-    expect(findByPk).toHaveBeenCalledWith("submission-1", {
+    expect(findOne).toHaveBeenCalledWith({
+      where: { id: "submission-1" },
       include: [
         {
           model: Milestone,
           as: "milestone",
           attributes: ["id", "title"],
+          required: true,
+          include: [
+            {
+              model: Module,
+              as: "module",
+              required: true,
+              include: [
+                {
+                  model: Course,
+                  as: "course",
+                  required: true,
+                  where: { instructorId: "instructor-1" },
+                  attributes: [],
+                },
+              ],
+            },
+          ],
         },
       ],
     });

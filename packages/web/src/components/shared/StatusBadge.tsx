@@ -23,9 +23,11 @@ const statusStyles: Record<
 export function StatusBadge({
   status,
   className,
+  label,
 }: {
   status: SubmissionStatus;
   className?: string;
+  label?: string;
 }) {
   const style = statusStyles[status];
   return (
@@ -36,7 +38,7 @@ export function StatusBadge({
         className,
       )}
     >
-      {style.label}
+      {label ?? style.label}
     </Badge>
   );
 }

@@ -189,4 +189,71 @@ describe("course route compatibility", () => {
 
     expect(screen.getByText("Page not found")).toBeInTheDocument();
   });
+
+  it("renders a refresh-safe nested lesson URL for an authenticated student", async () => {
+    setAuthenticatedUser("student");
+    getMock.mockImplementation((url) => {
+      if (url === "/courses/course-1") {
+        return Promise.resolve({
+          data: {
+            data: {
+              id: "course-1",
+              instructorId: "instructor-1",
+              title: "Full Stack Bootcamp",
+              description: "Course description",
+              isPublished: true,
+            },
+          },
+        }) as never;
+      }
+      if (url === "/courses/course-1/modules/module-1") {
+        return Promise.resolve({
+          data: {
+            data: {
+              id: "module-1",
+              courseId: "course-1",
+              title: "Frontend Foundations",
+              order: 1,
+            },
+          },
+        }) as never;
+      }
+      if (url === "/modules/module-1/lessons/lesson-1") {
+        return Promise.resolve({
+          data: {
+            data: {
+              id: "lesson-1",
+              moduleId: "module-1",
+              title: "React components",
+              content: "Lesson content",
+              videoUrl: null,
+              starterCodeUrl: null,
+              order: 1,
+            },
+          },
+        }) as never;
+      }
+      return Promise.reject(new Error(`Unexpected request: ${url}`));
+    });
+
+    renderWithProviders(
+      <>
+        <AppRoutes />
+        <LocationProbe />
+      </>,
+      {
+        initialEntries: ["/courses/course-1/modules/module-1/lessons/lesson-1"],
+      },
+    );
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "React components",
+        level: 1,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/courses/course-1/modules/module-1/lessons/lesson-1",
+    );
+  });
 });

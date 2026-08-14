@@ -12,11 +12,10 @@ export interface LessonAttributes {
   updatedAt?: Date;
 }
 
-export interface LessonCreationAttributes
-  extends Optional <
-    LessonAttributes,
-    "id" | "content" | "videoUrl" | "starterCodeUrl" | "order"
-  > {}
+export interface LessonCreationAttributes extends Optional<
+  LessonAttributes,
+  "id" | "content" | "videoUrl" | "starterCodeUrl" | "order"
+> {}
 
 export class Lesson
   extends Model<LessonAttributes, LessonCreationAttributes>

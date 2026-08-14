@@ -39,7 +39,6 @@ export const milestoneController = {
           moduleId,
         },
       });
-
       if (!milestone) {
         res.status(404).json({ error: "Milestone not found" });
         return;
@@ -87,7 +86,6 @@ export const milestoneController = {
           moduleId,
         },
       });
-
       if (!milestone) {
         res.status(404).json({ error: "Milestone not found" });
         return;
@@ -120,7 +118,6 @@ export const milestoneController = {
           moduleId,
         },
       });
-
       if (!milestone) {
         res.status(404).json({ error: "Milestone not found" });
         return;

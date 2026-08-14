@@ -8,6 +8,10 @@ import userEvent from "@testing-library/user-event";
 import type { ReactElement, ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 
+export function response(data: unknown) {
+  return Promise.resolve({ data: { data } }) as never;
+}
+
 export function createTestQueryClient() {
   return new QueryClient({
     defaultOptions: {

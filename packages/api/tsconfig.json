@@ -6,7 +6,7 @@
     "baseUrl": ".",
     "paths": {
       "@starter-kit/shared": ["../shared/src/index.ts"],
-      "@starter-kit/shared/*": ["../shared/src/*"]
+      "@starter-kit/shared/*": ["../shared/*"]
     }
   },
   "include": ["src/**/*", "app.ts", "server.ts"],

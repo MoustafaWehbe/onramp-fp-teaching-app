@@ -18,16 +18,16 @@ export const courseController = {
         courses = await Course.findAll({
           where: { instructorId: userId },
         });
-  } else {
-    // students only see courses they are enrolled in
-    const enrollments = await Enrollment.findAll({
-      where: { studentId: userId },
-    });
-    const courseIds = enrollments.map((e: any) => e.courseId);
-    courses = await Course.findAll({
-      where: { id: courseIds },
-    });
-  }
+      } else {
+        // students only see courses they are enrolled in
+        const enrollments = await Enrollment.findAll({
+          where: { studentId: userId },
+        });
+        const courseIds = enrollments.map((e: any) => e.courseId);
+        courses = await Course.findAll({
+          where: { id: courseIds },
+        });
+      }
 
       res.json({ data: courses });
     } catch (err) {
@@ -67,7 +67,9 @@ export const courseController = {
     try {
       // Only instructors can create courses
       if (req.user!.role !== "instructor") {
-        res.status(403).json({ error: "Forbidden: Only instructors can create courses" });
+        res
+          .status(403)
+          .json({ error: "Forbidden: Only instructors can create courses" });
         return;
       }
 

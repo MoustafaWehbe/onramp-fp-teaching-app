@@ -5,6 +5,7 @@ import { SubmissionLink } from "@starter-kit/shared/db/models/SubmissionLink";
 import { Milestone } from "@starter-kit/shared/db/models/Milestone";
 import { Module } from "@starter-kit/shared/db/models/Module";
 import { Course } from "@starter-kit/shared/db/models/Course";
+import { User } from "@starter-kit/shared/db/models/User";
 
 const URL_PATTERNS: Record<string, RegExp> = {
   github: /^https?:\/\/(?:www\.)?github\.com\/.+/,
@@ -22,6 +23,25 @@ function getParam(value: string | string[]): string {
   return Array.isArray(value) ? value[0] : value;
 }
 
+function ownedModuleInclude(instructorId: string) {
+  return [
+    {
+      model: Module,
+      as: "module",
+      required: true,
+      include: [
+        {
+          model: Course,
+          as: "course",
+          required: true,
+          where: { instructorId },
+          attributes: [],
+        },
+      ],
+    },
+  ];
+}
+
 export const submissionController = {
   async getSubmissions(
     req: Request,
@@ -36,9 +56,27 @@ export const submissionController = {
       let submissions;
 
       if (role === "instructor") {
+        const ownedMilestone = await Milestone.findOne({
+          where: { id: milestoneId },
+          attributes: ["id"],
+          include: ownedModuleInclude(userId),
+        });
+
+        if (!ownedMilestone) {
+          res.status(403).json({ error: "Forbidden" });
+          return;
+        }
+
         submissions = await Submission.findAll({
           where: { milestoneId },
-          include: [{ model: SubmissionLink, as: "links" }],
+          include: [
+            { model: SubmissionLink, as: "links" },
+            {
+              model: User,
+              as: "student",
+              attributes: ["id", "name", "email"],
+            },
+          ],
         });
       } else {
         submissions = await Submission.findAll({
@@ -89,19 +127,37 @@ export const submissionController = {
         return;
       }
 
-      const submission = await Submission.create({
-        milestoneId,
-        studentId,
-        status: "submitted",
-        submittedAt: new Date(),
-      });
+      const sequelize = Submission.sequelize;
+      if (!sequelize) {
+        throw new Error("Submission model is not initialized");
+      }
 
-      const submissionLinks = await SubmissionLink.bulkCreate(
-        links.map((link: { url: string; type: string }) => ({
-          submissionId: submission.id,
-          url: xss(link.url),
-          type: link.type,
-        })),
+      const { submission, submissionLinks } = await sequelize.transaction(
+        async (transaction) => {
+          const createdSubmission = await Submission.create(
+            {
+              milestoneId,
+              studentId,
+              status: "submitted",
+              submittedAt: new Date(),
+            },
+            { transaction },
+          );
+
+          const createdLinks = await SubmissionLink.bulkCreate(
+            links.map((link: { url: string; type: string }) => ({
+              submissionId: createdSubmission.id,
+              url: xss(link.url),
+              type: link.type,
+            })),
+            { transaction },
+          );
+
+          return {
+            submission: createdSubmission,
+            submissionLinks: createdLinks,
+          };
+        },
       );
 
       res.status(201).json({
@@ -125,19 +181,27 @@ export const submissionController = {
       const gradedBy = req.user!.userId;
       const { score, feedback } = req.body;
 
-      if (score < 0 || score > 100) {
+      if (
+        typeof score !== "number" ||
+        !Number.isFinite(score) ||
+        score < 0 ||
+        score > 100
+      ) {
         res.status(400).json({
           error: "Score must be between 0 and 100",
         });
         return;
       }
 
-      const submission = await Submission.findByPk(id as string, {
+      const submission = await Submission.findOne({
+        where: { id },
         include: [
           {
             model: Milestone,
             as: "milestone",
             attributes: ["id", "title"],
+            required: true,
+            include: ownedModuleInclude(gradedBy),
           },
         ],
       });
