@@ -141,7 +141,12 @@ const markdownComponents: Components = {
 
 function LessonLoading() {
   return (
-    <div aria-label="Loading lesson" className="space-y-6 animate-pulse">
+    <div
+      role="status"
+      aria-busy="true"
+      aria-label="Loading lesson"
+      className="space-y-6 animate-pulse"
+    >
       <div className="h-5 w-56 rounded bg-muted" />
       <div className="h-8 w-2/3 rounded bg-muted" />
       <div className="h-64 rounded-lg bg-muted" />
@@ -264,7 +269,9 @@ export function LessonDetails() {
           <ChevronRight aria-hidden="true" className="h-3 w-3" />
           <span className="font-medium text-foreground">{lesson.title}</span>
         </div>
-        <h1 className="text-3xl font-bold tracking-tight">{lesson.title}</h1>
+        <h1 className="break-words text-3xl font-bold tracking-tight">
+          {lesson.title}
+        </h1>
       </div>
 
       {lesson.videoUrl && externalVideoUrl && (

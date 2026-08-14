@@ -66,7 +66,7 @@ describe("POST /api/auth/register", () => {
 // ─── POST /api/auth/login ─────────────────────────────────────────────────────
 
 describe("POST /api/auth/login", () => {
-  it("returns 200 with tokens on valid credentials", async () => {
+  it("returns the user and keeps tokens in HTTP-only cookies", async () => {
     mockAuthService.login.mockResolvedValue({
       user: {
         id: "uuid-1",
@@ -83,8 +83,22 @@ describe("POST /api/auth/login", () => {
       .send({ email: "alice@example.com", password: "SecurePass1" });
 
     expect(res.status).toBe(200);
-    expect(res.body.data).toHaveProperty("accessToken");
-    expect(res.body.data).toHaveProperty("refreshToken");
+    expect(res.body.data).toEqual({
+      user: {
+        id: "uuid-1",
+        email: "alice@example.com",
+        name: "Alice",
+        role: "student",
+      },
+    });
+    expect(res.body.data).not.toHaveProperty("accessToken");
+    expect(res.body.data).not.toHaveProperty("refreshToken");
+    expect(res.headers["set-cookie"]).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/accessToken=access\.token\.here.*HttpOnly/i),
+        expect.stringMatching(/refreshToken=refresh\.token\.here.*HttpOnly/i),
+      ]),
+    );
   });
 
   it("returns 422 when body is missing", async () => {

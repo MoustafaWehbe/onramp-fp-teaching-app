@@ -96,6 +96,8 @@ describe("SubmitMilestonePage", () => {
     ["loom", "https://example.com/video", "Loom URL"],
     ["deployment", "ftp://example.com/app", "HTTP and HTTPS"],
     ["other", "javascript:alert(1)", "HTTP and HTTPS"],
+    ["other", "data:text/html,unsafe", "HTTP and HTTPS"],
+    ["other", "file:///tmp/unsafe", "HTTP and HTTPS"],
   ])("rejects an invalid %s link", async (type, url, message) => {
     const { user } = renderSubmissionPage();
     await user.selectOptions(

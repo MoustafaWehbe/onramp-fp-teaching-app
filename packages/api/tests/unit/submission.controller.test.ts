@@ -124,11 +124,11 @@ describe("submissionController", () => {
   describe("createSubmission", () => {
     const links = [{ type: "github", url: "https://github.com/team/repo" }];
 
-    function createRequest() {
+    function createRequest(requestLinks = links) {
       return {
         params: { milestoneId: "milestone-1" },
         user: { userId: "student-1", role: "student" },
-        body: { links },
+        body: { links: requestLinks },
       } as unknown as Request;
     }
 
@@ -154,6 +154,28 @@ describe("submissionController", () => {
       });
       return { transaction, run, commit, rollback };
     }
+
+    it.each([
+      ["github", "https://example.com/repository"],
+      ["loom", "https://example.com/video"],
+      ["other", "javascript:alert(1)"],
+      ["other", "data:text/html,unsafe"],
+      ["other", "file:///tmp/unsafe"],
+    ])("rejects an invalid %s URL before writing", async (type, url) => {
+      const findMilestone = jest.spyOn(Milestone, "findByPk");
+      const response = responseMock();
+      const next = jest.fn() as NextFunction;
+
+      await submissionController.createSubmission(
+        createRequest([{ type, url }]),
+        response,
+        next,
+      );
+
+      expect(response.status).toHaveBeenCalledWith(400);
+      expect(findMilestone).not.toHaveBeenCalled();
+      expect(next).not.toHaveBeenCalled();
+    });
 
     it("commits the submission and links in one managed transaction", async () => {
       jest

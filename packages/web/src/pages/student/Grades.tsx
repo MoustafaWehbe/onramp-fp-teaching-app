@@ -44,13 +44,13 @@ function GradeLink({ link }: { link: SubmissionLink }) {
   const content = (
     <>
       <span className="font-medium">{linkTypeLabel(link.type)}</span>
-      <span className="max-w-[240px] truncate text-muted-foreground">
+      <span className="max-w-[55vw] truncate text-muted-foreground sm:max-w-[240px]">
         {link.url}
       </span>
     </>
   );
   const className =
-    "inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs";
+    "inline-flex max-w-full min-w-0 items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs";
 
   if (!href) return <span className={className}>{content}</span>;
 

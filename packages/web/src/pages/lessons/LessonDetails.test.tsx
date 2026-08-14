@@ -81,6 +81,16 @@ describe("LessonDetails", () => {
     mockLessonPage();
   });
 
+  it("exposes the page loading skeleton as a busy status", () => {
+    getMock.mockReturnValue(new Promise(() => undefined) as never);
+
+    renderLesson();
+
+    expect(
+      screen.getByRole("status", { name: "Loading lesson" }),
+    ).toHaveAttribute("aria-busy", "true");
+  });
+
   it("loads the actual lesson and renders Markdown safely", async () => {
     renderLesson();
 

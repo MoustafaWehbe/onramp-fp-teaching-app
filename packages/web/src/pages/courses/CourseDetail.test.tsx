@@ -83,6 +83,16 @@ describe("CourseDetailPage", () => {
     mockCoursePage();
   });
 
+  it("exposes the page loading skeleton as a busy status", () => {
+    getMock.mockReturnValue(new Promise(() => undefined) as never);
+
+    renderCourseDetail();
+
+    expect(
+      screen.getByRole("status", { name: "Loading course" }),
+    ).toHaveAttribute("aria-busy", "true");
+  });
+
   it("loads modules from the API and renders ordered module cards", async () => {
     renderCourseDetail();
 

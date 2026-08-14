@@ -1,6 +1,7 @@
 import { screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { courseKeys } from "../hooks/useCourses";
+import { instructorKeys } from "../hooks/useInstructor";
 import { moduleKeys } from "../hooks/useModules";
 import { submissionKeys } from "../hooks/useSubmissions";
 import { apiClient } from "../lib/api-client";
@@ -62,6 +63,9 @@ function renderAuthProvider() {
     id: "course-1",
   });
   queryClient.setQueryData(submissionKeys.grades(), [{ id: "submission-1" }]);
+  queryClient.setQueryData(instructorKeys.courseSubmissions("course-1"), [
+    { id: "instructor-submission-1" },
+  ]);
   queryClient.setQueryData(moduleKeys.modules("course-1"), [
     { id: "module-1" },
   ]);
@@ -103,6 +107,9 @@ describe("AuthProvider learning-data cache isolation", () => {
     ).toBeUndefined();
     expect(queryClient.getQueryData(submissionKeys.grades())).toBeUndefined();
     expect(
+      queryClient.getQueryData(instructorKeys.courseSubmissions("course-1")),
+    ).toBeUndefined();
+    expect(
       queryClient.getQueryData(moduleKeys.modules("course-1")),
     ).toBeUndefined();
     expect(
@@ -134,6 +141,9 @@ describe("AuthProvider learning-data cache isolation", () => {
         queryClient.getQueryData(courseKeys.detail("course-1")),
       ).toBeUndefined();
       expect(queryClient.getQueryData(submissionKeys.grades())).toBeUndefined();
+      expect(
+        queryClient.getQueryData(instructorKeys.courseSubmissions("course-1")),
+      ).toBeUndefined();
       expect(
         queryClient.getQueryData(moduleKeys.modules("course-1")),
       ).toBeUndefined();

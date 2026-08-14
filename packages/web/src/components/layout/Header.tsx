@@ -21,7 +21,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-card px-4 sm:px-6">
       <Link
-        to="/"
+        to="/courses"
         className="text-base font-bold tracking-tight text-foreground"
       >
         Bootcamp<span className="text-primary">.</span>
@@ -34,10 +34,12 @@ export function Header() {
           {user?.name}
         </Link>
         <button
+          type="button"
           onClick={handleLogout}
+          aria-label="Log out"
           className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut aria-hidden="true" className="h-4 w-4" />
           <span className="hidden sm:inline">Log out</span>
         </button>
       </div>

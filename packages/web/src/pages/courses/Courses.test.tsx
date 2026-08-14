@@ -80,7 +80,9 @@ describe("CoursesPage", () => {
 
     renderCoursesPage();
 
-    expect(screen.getByLabelText("Loading courses")).toBeInTheDocument();
+    expect(
+      screen.getByRole("status", { name: "Loading courses" }),
+    ).toHaveAttribute("aria-busy", "true");
     expect(getMock).toHaveBeenCalledWith("/courses");
 
     resolveRequest(response([course]));

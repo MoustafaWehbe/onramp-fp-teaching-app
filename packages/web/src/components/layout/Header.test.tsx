@@ -43,6 +43,14 @@ function renderHeader(logout: () => Promise<void>) {
 describe("Header", () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it("keeps the authenticated logo inside the learning application", async () => {
+    const user = renderHeader(vi.fn().mockResolvedValue(undefined));
+
+    await user.click(screen.getByRole("link", { name: /Bootcamp/ }));
+
+    expect(screen.getByTestId("location")).toHaveTextContent("/courses");
+  });
+
   it("navigates to login after a successful logout", async () => {
     const logout = vi.fn().mockResolvedValue(undefined);
     const user = renderHeader(logout);

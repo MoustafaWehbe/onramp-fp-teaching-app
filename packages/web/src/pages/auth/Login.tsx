@@ -43,9 +43,16 @@ export function Login() {
       <Card className="w-full max-w-md">
         <AuthCardHeader description="Log in to continue learning" />
         <CardContent>
-          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
+          <form
+            className="space-y-4"
+            onSubmit={handleSubmit(onSubmit)}
+            noValidate
+          >
             {error && (
-              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <p
+                role="alert"
+                className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              >
                 {error}
               </p>
             )}
@@ -56,10 +63,14 @@ export function Login() {
                 type="email"
                 placeholder="you@example.com"
                 autoComplete="email"
+                aria-invalid={Boolean(errors.email)}
+                aria-describedby={
+                  errors.email ? "login-email-error" : undefined
+                }
                 {...register("email")}
               />
               {errors.email && (
-                <p className="text-xs text-destructive">
+                <p id="login-email-error" className="text-xs text-destructive">
                   {errors.email.message}
                 </p>
               )}
@@ -70,10 +81,17 @@ export function Login() {
                 id="password"
                 placeholder="••••••••"
                 autoComplete="current-password"
+                aria-invalid={Boolean(errors.password)}
+                aria-describedby={
+                  errors.password ? "login-password-error" : undefined
+                }
                 {...register("password")}
               />
               {errors.password && (
-                <p className="text-xs text-destructive">
+                <p
+                  id="login-password-error"
+                  className="text-xs text-destructive"
+                >
                   {errors.password.message}
                 </p>
               )}
@@ -83,7 +101,10 @@ export function Login() {
             </Button>
             <p className="text-center text-xs text-muted-foreground">
               Need an account?{" "}
-              <Link to="/register" className="font-medium text-primary hover:underline">
+              <Link
+                to="/register"
+                className="font-medium text-primary hover:underline"
+              >
                 Register here
               </Link>
             </p>

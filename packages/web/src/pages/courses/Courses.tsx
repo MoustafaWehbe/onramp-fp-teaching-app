@@ -24,6 +24,8 @@ import { getApiErrorMessage } from "../../lib/courses-api";
 function CoursesLoading() {
   return (
     <div
+      role="status"
+      aria-busy="true"
       aria-label="Loading courses"
       className="grid grid-cols-1 gap-5 lg:grid-cols-2"
     >
@@ -333,7 +335,7 @@ export function CoursesPage() {
               >
                 <CardHeader className="flex-1">
                   <div className="flex items-start justify-between gap-3">
-                    <CardTitle className="text-lg leading-snug">
+                    <CardTitle className="min-w-0 break-words text-lg leading-snug">
                       {course.title}
                     </CardTitle>
                     <Badge

@@ -22,7 +22,12 @@ import { getApiErrorMessage } from "../../lib/courses-api";
 
 function CourseDetailLoading() {
   return (
-    <div aria-label="Loading course" className="space-y-6 animate-pulse">
+    <div
+      role="status"
+      aria-busy="true"
+      aria-label="Loading course"
+      className="space-y-6 animate-pulse"
+    >
       <div className="h-8 w-2/3 rounded bg-muted" />
       <div className="h-4 w-full rounded bg-muted" />
       <div className="h-4 w-4/5 rounded bg-muted" />
@@ -102,7 +107,9 @@ export function CourseDetailPage() {
 
       <div className="space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">{course.title}</h1>
+          <h1 className="min-w-0 break-words text-3xl font-bold tracking-tight">
+            {course.title}
+          </h1>
           <Badge variant={course.isPublished ? "secondary" : "outline"}>
             {course.isPublished ? "Published" : "Draft"}
           </Badge>
@@ -155,7 +162,9 @@ export function CourseDetailPage() {
                       <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                         Module {index + 1}
                       </p>
-                      <h3 className="mt-1 font-semibold">{module.title}</h3>
+                      <h3 className="mt-1 break-words font-semibold">
+                        {module.title}
+                      </h3>
                     </div>
                     <Link
                       to={`/courses/${course.id}/modules/${module.id}`}
