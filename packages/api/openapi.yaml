@@ -324,6 +324,40 @@ components:
           enum: [github, loom, deployment, other]
           example: github
 
+    SubmissionCourseSummary:
+      type: object
+      required: [id, title]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+
+    SubmissionModuleSummary:
+      type: object
+      required: [id, title]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        course:
+          $ref: "#/components/schemas/SubmissionCourseSummary"
+
+    SubmissionMilestoneSummary:
+      type: object
+      required: [id, title]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        module:
+          $ref: "#/components/schemas/SubmissionModuleSummary"
+
     SubmissionStudent:
       type: object
       properties:
@@ -372,6 +406,8 @@ components:
           maxItems: 10
           items:
             $ref: "#/components/schemas/SubmissionLink"
+        milestone:
+          $ref: "#/components/schemas/SubmissionMilestoneSummary"
         submittedAt:
           type: string
           format: date-time
@@ -1346,10 +1382,10 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /my/grades:
+  /submissions/my/grades:
     get:
       tags: [Submissions]
-      summary: Get current student gradebook
+      summary: Get the current student's graded submissions
       operationId: getMyGrades
       security:
         - cookieAuth: []
@@ -1367,6 +1403,12 @@ paths:
                       $ref: "#/components/schemas/Submission"
         "401":
           description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - student only
           content:
             application/json:
               schema:

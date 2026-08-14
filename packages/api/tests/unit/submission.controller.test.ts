@@ -280,6 +280,7 @@ describe("submissionController", () => {
           {
             model: Milestone,
             as: "milestone",
+            attributes: ["id", "title"],
             required: true,
             include: ownedModuleInclude(),
           },

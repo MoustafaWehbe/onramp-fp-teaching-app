@@ -2,6 +2,7 @@ import { screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { courseKeys } from "../hooks/useCourses";
 import { moduleKeys } from "../hooks/useModules";
+import { submissionKeys } from "../hooks/useSubmissions";
 import { apiClient } from "../lib/api-client";
 import { createTestQueryClient, renderWithProviders } from "../test/test-utils";
 import { AuthProvider, useAuthContext, type AuthUser } from "./AuthProvider";
@@ -60,6 +61,7 @@ function renderAuthProvider() {
   queryClient.setQueryData(courseKeys.detail("course-1"), {
     id: "course-1",
   });
+  queryClient.setQueryData(submissionKeys.grades(), [{ id: "submission-1" }]);
   queryClient.setQueryData(moduleKeys.modules("course-1"), [
     { id: "module-1" },
   ]);
@@ -83,7 +85,7 @@ describe("AuthProvider learning-data cache isolation", () => {
     getMock.mockResolvedValue({ data: { data: currentUser } } as never);
   });
 
-  it("removes cached course lists and details after a successful login", async () => {
+  it("removes cached learning data after a successful login", async () => {
     postMock.mockResolvedValueOnce({
       data: { data: { user: nextUser } },
     } as never);
@@ -99,6 +101,7 @@ describe("AuthProvider learning-data cache isolation", () => {
     expect(
       queryClient.getQueryData(courseKeys.detail("course-1")),
     ).toBeUndefined();
+    expect(queryClient.getQueryData(submissionKeys.grades())).toBeUndefined();
     expect(
       queryClient.getQueryData(moduleKeys.modules("course-1")),
     ).toBeUndefined();
@@ -111,7 +114,7 @@ describe("AuthProvider learning-data cache isolation", () => {
     ["successful", undefined],
     ["failed", new Error("Network unavailable")],
   ])(
-    "removes cached courses after a %s logout",
+    "removes cached learning data after a %s logout",
     async (_scenario, logoutError) => {
       if (logoutError) {
         postMock.mockRejectedValueOnce(logoutError);
@@ -130,6 +133,7 @@ describe("AuthProvider learning-data cache isolation", () => {
       expect(
         queryClient.getQueryData(courseKeys.detail("course-1")),
       ).toBeUndefined();
+      expect(queryClient.getQueryData(submissionKeys.grades())).toBeUndefined();
       expect(
         queryClient.getQueryData(moduleKeys.modules("course-1")),
       ).toBeUndefined();

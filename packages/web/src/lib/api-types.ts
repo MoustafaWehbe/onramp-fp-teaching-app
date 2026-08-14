@@ -307,14 +307,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/my/grades": {
+    "/submissions/my/grades": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get current student gradebook */
+        /** Get the current student's graded submissions */
         get: operations["getMyGrades"];
         put?: never;
         post?: never;
@@ -529,6 +529,23 @@ export interface components {
              */
             type: "github" | "loom" | "deployment" | "other";
         };
+        SubmissionCourseSummary: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+        };
+        SubmissionModuleSummary: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            course?: components["schemas"]["SubmissionCourseSummary"];
+        };
+        SubmissionMilestoneSummary: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            module?: components["schemas"]["SubmissionModuleSummary"];
+        };
         SubmissionStudent: {
             /** Format: uuid */
             id?: string;
@@ -560,6 +577,7 @@ export interface components {
             /** @example Great work! Clean code and well structured. */
             feedback?: string;
             links?: components["schemas"]["SubmissionLink"][];
+            milestone?: components["schemas"]["SubmissionMilestoneSummary"];
             /** Format: date-time */
             submittedAt?: string;
             /** Format: date-time */
@@ -1627,6 +1645,15 @@ export interface operations {
             };
             /** @description Unauthorized */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden - student only */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

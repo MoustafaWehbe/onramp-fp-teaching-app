@@ -199,6 +199,7 @@ export const submissionController = {
           {
             model: Milestone,
             as: "milestone",
+            attributes: ["id", "title"],
             required: true,
             include: ownedModuleInclude(gradedBy),
           },
@@ -234,7 +235,29 @@ export const submissionController = {
 
       const submissions = await Submission.findAll({
         where: { studentId, status: "graded" },
-        include: [{ model: SubmissionLink, as: "links" }],
+        include: [
+          { model: SubmissionLink, as: "links" },
+          {
+            model: Milestone,
+            as: "milestone",
+            attributes: ["id", "title"],
+            include: [
+              {
+                model: Module,
+                as: "module",
+                attributes: ["id", "title"],
+                include: [
+                  {
+                    model: Course,
+                    as: "course",
+                    attributes: ["id", "title"],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        order: [["gradedAt", "DESC"]],
       });
 
       res.json({ data: submissions });
