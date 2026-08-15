@@ -91,8 +91,8 @@ describe("POST /api/auth/login", () => {
         role: "student",
       },
     });
-    expect(res.body.data).not.toHaveProperty("accessToken");
-    expect(res.body.data).not.toHaveProperty("refreshToken");
+    expect(res.body).not.toHaveProperty("accessToken");
+    expect(res.body).not.toHaveProperty("refreshToken");
     expect(res.headers["set-cookie"]).toEqual(
       expect.arrayContaining([
         expect.stringMatching(/accessToken=access\.token\.here.*HttpOnly/i),

@@ -158,7 +158,7 @@ export function CourseDetailPage() {
               {modules.map((module, index) => (
                 <Card key={module.id} className="border-border">
                   <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                         Module {index + 1}
                       </p>
