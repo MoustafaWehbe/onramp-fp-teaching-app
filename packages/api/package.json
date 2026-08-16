@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^7.3.4",
+    "@google/genai": "^2.17.1",
     "@starter-kit/shared": "*",
     "@types/cookie-parser": "^1.4.10",
     "bullmq": "^5.12.0",
