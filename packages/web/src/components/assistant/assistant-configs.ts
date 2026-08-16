@@ -40,15 +40,14 @@ export function instructorAssistant(
   courseId?: string,
   courseTitle?: string,
 ): AssistantConfig {
-  const hasCourseContext = Boolean(courseId && courseTitle);
-
   return {
-    id: hasCourseContext ? `instructor:${courseId}` : "instructor:workspace",
+    id: courseId ? `instructor:${courseId}` : "instructor:workspace",
     name: "Instructor Assistant",
     badge: "INSTRUCTOR",
-    subtitle: hasCourseContext
-      ? `Managing: ${courseTitle}`
-      : "Instructor Workspace",
+    subtitle:
+      courseId && courseTitle
+        ? `Managing: ${courseTitle}`
+        : "Instructor Workspace",
     description:
       "Ask about grading, submissions, deadlines, and course activity.",
     icon: Briefcase,

@@ -72,9 +72,11 @@ describe("AssistantLauncher", () => {
     );
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Open MentorLane Assistant" }),
-    ).toBeInTheDocument();
+    const launcher = screen.getByRole("button", {
+      name: "Open MentorLane Assistant",
+    });
+    expect(launcher).toBeInTheDocument();
+    expect(launcher).toHaveFocus();
   });
 
   it("shows the configured name, badge, and subtitle", async () => {
@@ -129,9 +131,8 @@ describe("AssistantLauncher", () => {
     await user.type(input, "Where are grades?");
     await user.click(screen.getByRole("button", { name: "Send message" }));
 
-    expect(
-      screen.getByRole("status", { name: "Assistant is responding" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(screen.getByText("Assistant is responding")).toHaveClass("sr-only");
     expect(screen.getByRole("button", { name: "Send message" })).toBeDisabled();
     expect(
       screen.getByRole("button", { name: "How do submissions work?" }),
@@ -154,9 +155,11 @@ describe("AssistantLauncher", () => {
     );
     await user.click(screen.getByRole("button", { name: "Send message" }));
 
-    expect(await screen.findByLabelText("Assistant message")).toHaveTextContent(
-      response.answer,
-    );
+    const assistantMessage = await screen.findByRole("group", {
+      name: "Assistant message",
+    });
+    expect(assistantMessage).toHaveTextContent(response.answer);
+    expect(assistantMessage).toHaveAttribute("aria-live", "polite");
   });
 
   it("renders source titles without inventing links", async () => {
@@ -196,6 +199,7 @@ describe("AssistantLauncher", () => {
     const input = screen.getByLabelText("Message MentorLane Assistant");
 
     await user.type(input, "First line");
+    // fireEvent returns true when the key event is not prevented.
     expect(fireEvent.keyDown(input, { key: "Enter", shiftKey: true })).toBe(
       true,
     );
@@ -262,6 +266,31 @@ describe("AssistantLauncher", () => {
     expect(screen.getByRole("dialog")).toHaveTextContent(response.answer);
   });
 
+  it("persists a reply that completes while the panel is minimized", async () => {
+    const request = deferred<AssistantResponse>();
+    const { user } = renderLauncher(() => request.promise);
+    await openLauncher(user);
+    await user.type(
+      screen.getByLabelText("Message MentorLane Assistant"),
+      "Finish this later",
+    );
+    await user.click(screen.getByRole("button", { name: "Send message" }));
+    await user.click(
+      screen.getByRole("button", { name: "Minimize MentorLane Assistant" }),
+    );
+
+    await act(async () => {
+      request.resolve(response);
+      await request.promise;
+    });
+    await user.click(
+      screen.getByRole("button", { name: "Open MentorLane Assistant" }),
+    );
+
+    expect(screen.getByRole("dialog")).toHaveTextContent("Finish this later");
+    expect(screen.getByRole("dialog")).toHaveTextContent(response.answer);
+  });
+
   it("keeps different course conversations separated", async () => {
     const courseOne = courseAssistant("course-1", "Shared title");
     const courseTwo = courseAssistant("course-2", "Shared title");
@@ -302,5 +331,8 @@ describe("AssistantLauncher", () => {
     fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Open MentorLane Assistant" }),
+    ).toHaveFocus();
   });
 });

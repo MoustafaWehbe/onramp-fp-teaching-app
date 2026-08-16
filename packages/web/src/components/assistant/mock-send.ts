@@ -10,7 +10,7 @@ async function uiMockResponse(
   answer: string,
   sources: AssistantSource[],
 ): Promise<AssistantResponse> {
-  await new Promise((resolve) => window.setTimeout(resolve, MOCK_DELAY_MS));
+  await new Promise((resolve) => setTimeout(resolve, MOCK_DELAY_MS));
 
   return {
     type: "message",

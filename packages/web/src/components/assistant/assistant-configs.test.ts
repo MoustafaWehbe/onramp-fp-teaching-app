@@ -41,4 +41,11 @@ describe("assistant identity configs", () => {
       subtitle: "Managing: TypeScript Basics",
     });
   });
+
+  it("keeps the course-specific instructor ID while its title is unavailable", () => {
+    expect(instructorAssistant("course-7", "")).toMatchObject({
+      id: "instructor:course-7",
+      subtitle: "Instructor Workspace",
+    });
+  });
 });

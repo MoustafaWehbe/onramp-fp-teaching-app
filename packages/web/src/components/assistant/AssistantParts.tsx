@@ -44,7 +44,9 @@ export function MessageBubble({ message }: { message: AssistantMessage }) {
 
   return (
     <div
+      role="group"
       aria-label={`${isUser ? "User" : "Assistant"} message`}
+      aria-live={isUser ? undefined : "polite"}
       className={cn(
         "flex flex-col gap-2",
         isUser ? "items-end" : "items-start",
@@ -71,8 +73,6 @@ export function TypingIndicator() {
   return (
     <div
       role="status"
-      aria-label="Assistant is responding"
-      aria-live="polite"
       className="flex w-fit items-center gap-1.5 rounded-lg rounded-bl-sm bg-secondary px-3.5 py-3"
     >
       <span className="sr-only">Assistant is responding</span>

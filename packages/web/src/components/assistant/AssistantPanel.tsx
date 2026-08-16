@@ -87,6 +87,10 @@ export function AssistantPanel({
         content: response.answer,
         sources: response.sources,
       };
+      setConversation(config.id, [
+        ...getConversation(config.id, []),
+        assistantMessage,
+      ]);
       setMessages((current) => [...current, assistantMessage]);
       setFailedAttempt(null);
     } catch (caughtError) {
@@ -111,7 +115,9 @@ export function AssistantPanel({
       role: "user",
       content: value,
     };
-    setMessages((current) => [...current, userMessage]);
+    const nextMessages = [...messages, userMessage];
+    setConversation(config.id, nextMessages);
+    setMessages(nextMessages);
     setInput("");
     void run(value, history);
   }
@@ -172,7 +178,6 @@ export function AssistantPanel({
 
       <div
         ref={scrollRef}
-        aria-live="polite"
         className="flex-1 space-y-4 overflow-y-auto px-4 py-4"
       >
         {messages.length === 0 && !loading ? (

@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "../ui/button";
 import { AssistantPanel } from "./AssistantPanel";
 import { isAssistantOpen, setAssistantOpen } from "./conversation-store";
@@ -17,17 +17,28 @@ function AssistantLauncherInstance({
 }: AssistantLauncherProps) {
   const panelId = useId();
   const [open, setOpenState] = useState(() => isAssistantOpen(config.id));
+  const launcherRef = useRef<HTMLButtonElement>(null);
+  const shouldRestoreFocus = useRef(false);
   const Icon = config.icon;
 
   function setOpen(nextOpen: boolean) {
+    if (!nextOpen) shouldRestoreFocus.current = true;
     setAssistantOpen(config.id, nextOpen);
     setOpenState(nextOpen);
   }
+
+  useEffect(() => {
+    if (!open && shouldRestoreFocus.current) {
+      shouldRestoreFocus.current = false;
+      launcherRef.current?.focus();
+    }
+  }, [open]);
 
   return (
     <>
       {!open && (
         <Button
+          ref={launcherRef}
           type="button"
           onClick={() => setOpen(true)}
           className="fixed bottom-20 right-4 z-50 h-12 gap-2 rounded-full px-4 shadow-lg sm:right-5 sm:px-5 md:bottom-5"
