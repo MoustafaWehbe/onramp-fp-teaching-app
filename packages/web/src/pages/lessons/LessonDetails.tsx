@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import { Link, useParams } from "react-router-dom";
+import { CourseContextAssistant } from "../../components/assistant";
 import { Button, buttonVariants } from "../../components/ui/button";
 import {
   Card,
@@ -342,6 +343,8 @@ export function LessonDetails() {
           </CardContent>
         </Card>
       )}
+
+      <CourseContextAssistant courseId={course.id} courseTitle={course.title} />
     </div>
   );
 }

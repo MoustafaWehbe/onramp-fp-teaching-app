@@ -6,6 +6,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
+import { CourseContextAssistant } from "../../components/assistant";
 import { QueryListSection } from "../../components/shared/QueryListSection";
 import { Badge } from "../../components/ui/badge";
 import { Button, buttonVariants } from "../../components/ui/button";
@@ -171,6 +172,8 @@ export function CourseDetailPage() {
           )}
         </QueryListSection>
       </section>
+
+      <CourseContextAssistant courseId={course.id} courseTitle={course.title} />
     </div>
   );
 }

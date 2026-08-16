@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { BookOpen, CircleAlert, Plus, RefreshCw } from "lucide-react";
+import { InstructorContextAssistant } from "../../components/assistant";
 import { EmptyState } from "../../components/shared/EmptyState";
 import { Badge } from "../../components/ui/badge";
 import { Button, buttonVariants } from "../../components/ui/button";
@@ -133,6 +134,8 @@ export function InstructorDashboard() {
           </div>
         )}
       </section>
+
+      <InstructorContextAssistant />
     </div>
   );
 }

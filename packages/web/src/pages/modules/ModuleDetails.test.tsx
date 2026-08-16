@@ -1,6 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import { Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { useAuth } from "../../hooks/useAuth";
 import { apiClient } from "../../lib/api-client";
 import { renderWithProviders, response } from "../../test/test-utils";
 import { ModuleDetails } from "./ModuleDetails";
@@ -8,8 +9,10 @@ import { ModuleDetails } from "./ModuleDetails";
 vi.mock("../../lib/api-client", () => ({
   apiClient: { get: vi.fn(), post: vi.fn() },
 }));
+vi.mock("../../hooks/useAuth", () => ({ useAuth: vi.fn() }));
 
 const getMock = vi.mocked(apiClient.get);
+const useAuthMock = vi.mocked(useAuth);
 const course = {
   id: "course-1",
   instructorId: "instructor-1",
@@ -70,6 +73,18 @@ function renderModule() {
 describe("ModuleDetails", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    useAuthMock.mockReturnValue({
+      user: {
+        id: "student-1",
+        role: "student",
+        name: "Sam Student",
+        email: "student@example.com",
+      },
+      isLoading: false,
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+    });
     mockModulePage();
   });
 
