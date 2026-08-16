@@ -51,9 +51,16 @@ export function Register() {
       <Card className="w-full max-w-md">
         <AuthCardHeader description="Create your learning account" />
         <CardContent>
-          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
+          <form
+            className="space-y-4"
+            onSubmit={handleSubmit(onSubmit)}
+            noValidate
+          >
             {error && (
-              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <p
+                role="alert"
+                className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              >
                 {error}
               </p>
             )}
@@ -62,10 +69,17 @@ export function Register() {
               <Input
                 id="name"
                 placeholder="Alice Smith"
+                aria-invalid={Boolean(errors.name)}
+                aria-describedby={
+                  errors.name ? "register-name-error" : undefined
+                }
                 {...register("name")}
               />
               {errors.name && (
-                <p className="text-xs text-destructive">
+                <p
+                  id="register-name-error"
+                  className="text-xs text-destructive"
+                >
                   {errors.name.message}
                 </p>
               )}
@@ -77,10 +91,17 @@ export function Register() {
                 type="email"
                 placeholder="you@example.com"
                 autoComplete="email"
+                aria-invalid={Boolean(errors.email)}
+                aria-describedby={
+                  errors.email ? "register-email-error" : undefined
+                }
                 {...register("email")}
               />
               {errors.email && (
-                <p className="text-xs text-destructive">
+                <p
+                  id="register-email-error"
+                  className="text-xs text-destructive"
+                >
                   {errors.email.message}
                 </p>
               )}
@@ -91,10 +112,17 @@ export function Register() {
                 id="register-password"
                 placeholder="••••••••"
                 autoComplete="new-password"
+                aria-invalid={Boolean(errors.password)}
+                aria-describedby={
+                  errors.password ? "register-password-error" : undefined
+                }
                 {...register("password")}
               />
               {errors.password && (
-                <p className="text-xs text-destructive">
+                <p
+                  id="register-password-error"
+                  className="text-xs text-destructive"
+                >
                   {errors.password.message}
                 </p>
               )}

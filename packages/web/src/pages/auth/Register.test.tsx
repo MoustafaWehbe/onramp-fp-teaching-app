@@ -69,7 +69,27 @@ describe("Register", () => {
     expect(
       await screen.findByText("Name must be 100 characters or less"),
     ).toBeInTheDocument();
+    expect(screen.getByLabelText("Name")).toHaveAttribute(
+      "aria-describedby",
+      "register-name-error",
+    );
+    expect(screen.getByLabelText("Name")).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
     expect(registerUser).not.toHaveBeenCalled();
+  });
+
+  it("announces registration API failures", async () => {
+    registerUser.mockRejectedValueOnce(new Error("Conflict"));
+    const user = renderRegister();
+
+    await completeRegistrationForm(user, "Alice Smith");
+    await user.click(screen.getByRole("button", { name: "Create account" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Registration failed",
+    );
   });
 
   it("toggles password visibility without changing the field value", async () => {

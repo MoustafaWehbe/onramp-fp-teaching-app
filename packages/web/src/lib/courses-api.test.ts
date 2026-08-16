@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiClient } from "./api-client";
-import { createCourse, getCourses } from "./courses-api";
+import { createCourse, getApiErrorMessage, getCourses } from "./courses-api";
 
 vi.mock("./api-client", () => ({
   apiClient: {
@@ -48,5 +48,17 @@ describe("courses API response validation", () => {
         isPublished: false,
       },
     ]);
+  });
+
+  it("does not expose Axios implementation details when an API has no message", () => {
+    const error = {
+      isAxiosError: true,
+      message: "Request failed with status code 500",
+      response: { status: 500, data: {} },
+    };
+
+    expect(getApiErrorMessage(error, "Unable to load courses.")).toBe(
+      "Unable to load courses.",
+    );
   });
 });

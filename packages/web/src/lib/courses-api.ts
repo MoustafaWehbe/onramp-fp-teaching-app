@@ -132,7 +132,7 @@ export function getApiErrorMessage(
       return "Unable to reach the server. Check your connection and try again.";
     }
 
-    return error.message || fallback;
+    return fallback;
   }
 
   const payloadMessage = extractPayloadMessage(error);

@@ -15,7 +15,12 @@ import { getApiErrorMessage } from "../../lib/courses-api";
 
 function ModuleLoading() {
   return (
-    <div aria-label="Loading module" className="space-y-6 animate-pulse">
+    <div
+      role="status"
+      aria-busy="true"
+      aria-label="Loading module"
+      className="space-y-6 animate-pulse"
+    >
       <div className="h-5 w-48 rounded bg-muted" />
       <div className="h-8 w-2/3 rounded bg-muted" />
       <div className="space-y-3">
@@ -118,7 +123,7 @@ export function ModuleDetails() {
         </Link>
         <div>
           <p className="text-sm text-muted-foreground">{course.title}</p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight">
+          <h1 className="mt-1 break-words text-3xl font-bold tracking-tight">
             {module.title}
           </h1>
         </div>

@@ -101,7 +101,9 @@ export function InstructorDashboard() {
               <Card key={course.id} className="border-border">
                 <CardHeader className="space-y-3">
                   <div className="flex items-start justify-between gap-3">
-                    <CardTitle className="text-lg">{course.title}</CardTitle>
+                    <CardTitle className="min-w-0 break-words text-lg">
+                      {course.title}
+                    </CardTitle>
                     <Badge
                       variant={course.isPublished ? "default" : "secondary"}
                     >

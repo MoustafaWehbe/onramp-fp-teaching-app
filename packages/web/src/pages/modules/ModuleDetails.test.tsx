@@ -73,6 +73,16 @@ describe("ModuleDetails", () => {
     mockModulePage();
   });
 
+  it("exposes the page loading skeleton as a busy status", () => {
+    getMock.mockReturnValue(new Promise(() => undefined) as never);
+
+    renderModule();
+
+    expect(
+      screen.getByRole("status", { name: "Loading module" }),
+    ).toHaveAttribute("aria-busy", "true");
+  });
+
   it("loads lessons, orders them, and creates refresh-safe lesson links", async () => {
     renderModule();
 

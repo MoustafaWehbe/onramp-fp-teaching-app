@@ -23,17 +23,19 @@ export function Settings() {
           <CardDescription>Your account information</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-          <div className="flex justify-between text-sm">
+          <div className="flex justify-between gap-4 text-sm">
             <span className="text-muted-foreground">Name</span>
-            <span>{user?.name}</span>
+            <span className="min-w-0 break-words text-right">{user?.name}</span>
           </div>
-          <div className="flex justify-between text-sm">
+          <div className="flex justify-between gap-4 text-sm">
             <span className="text-muted-foreground">Email</span>
-            <span>{user?.email}</span>
+            <span className="min-w-0 break-all text-right">{user?.email}</span>
           </div>
-          <div className="flex justify-between text-sm">
+          <div className="flex justify-between gap-4 text-sm">
             <span className="text-muted-foreground">Role</span>
-            <span className="capitalize">{user?.role}</span>
+            <span className="min-w-0 break-words text-right capitalize">
+              {user?.role}
+            </span>
           </div>
         </CardContent>
       </Card>

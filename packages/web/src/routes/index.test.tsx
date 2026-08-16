@@ -32,6 +32,16 @@ function setAuthenticatedUser(role: "student" | "instructor") {
   });
 }
 
+function setUnauthenticatedUser() {
+  useAuthMock.mockReturnValue({
+    user: null,
+    isLoading: false,
+    login: vi.fn(),
+    register: vi.fn(),
+    logout: vi.fn(),
+  });
+}
+
 function LocationProbe() {
   return <output data-testid="location">{useLocation().pathname}</output>;
 }
@@ -60,6 +70,26 @@ describe("course route compatibility", () => {
       await screen.findByRole("heading", { name: "My Courses" }),
     ).toBeInTheDocument();
   });
+
+  it.each(["/courses", "/grades", "/profile", "/instructor/dashboard"])(
+    "redirects a logged-out visitor from %s to login",
+    async (path) => {
+      setUnauthenticatedUser();
+
+      renderWithProviders(
+        <>
+          <AppRoutes />
+          <LocationProbe />
+        </>,
+        { initialEntries: [path] },
+      );
+
+      await waitFor(() =>
+        expect(screen.getByTestId("location")).toHaveTextContent("/login"),
+      );
+      expect(getMock).not.toHaveBeenCalled();
+    },
+  );
 
   it("redirects the old instructor courses URL to the shared courses page", async () => {
     setAuthenticatedUser("instructor");

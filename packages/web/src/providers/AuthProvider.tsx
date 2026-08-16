@@ -7,6 +7,7 @@ import {
 } from "react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { courseKeys } from "../hooks/useCourses";
+import { instructorKeys } from "../hooks/useInstructor";
 import { moduleKeys } from "../hooks/useModules";
 import { submissionKeys } from "../hooks/useSubmissions";
 import { apiClient } from "../lib/api-client";
@@ -32,6 +33,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 function clearUserScopedQueries(queryClient: QueryClient): void {
   queryClient.removeQueries({ queryKey: courseKeys.all });
+  queryClient.removeQueries({ queryKey: instructorKeys.all });
   queryClient.removeQueries({ queryKey: moduleKeys.all });
   queryClient.removeQueries({ queryKey: submissionKeys.all });
 }

@@ -133,4 +133,37 @@ describe("GradesPage", () => {
     const unsafeText = screen.getByText("javascript:alert(1)");
     expect(unsafeText.closest("a")).toBeNull();
   });
+
+  it("handles boundary scores, empty feedback, multiple grades, and long content", async () => {
+    const longFeedback = "Detailed feedback ".repeat(80);
+    getMock.mockResolvedValueOnce(
+      response([
+        { ...grade, id: "zero", score: 0, feedback: "   ", links: [] },
+        {
+          ...grade,
+          id: "perfect",
+          score: 100,
+          feedback: longFeedback,
+          links: [
+            {
+              id: "long-link",
+              submissionId: "perfect",
+              type: "deployment",
+              url: `https://example.com/${"very-long-path/".repeat(30)}`,
+            },
+          ],
+        },
+      ]),
+    );
+
+    renderWithProviders(<GradesPage />);
+
+    expect(await screen.findByText("0/100")).toBeInTheDocument();
+    expect(screen.getByText("100/100")).toBeInTheDocument();
+    expect(screen.getByText("No feedback was provided.")).toBeInTheDocument();
+    expect(screen.getByText(longFeedback.trim())).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("heading", { name: "Build a portfolio" }),
+    ).toHaveLength(2);
+  });
 });

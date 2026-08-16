@@ -228,10 +228,10 @@ export function SubmissionsPage() {
                           className="flex flex-col gap-3 px-5 py-4 transition-colors hover:bg-accent/40 sm:flex-row sm:items-center sm:justify-between"
                         >
                           <div className="min-w-0">
-                            <p className="font-medium">
+                            <p className="break-words font-medium">
                               {submission.milestoneTitle}
                             </p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="break-words text-sm text-muted-foreground">
                               {submission.student.name} ·{" "}
                               {submission.moduleTitle}
                             </p>

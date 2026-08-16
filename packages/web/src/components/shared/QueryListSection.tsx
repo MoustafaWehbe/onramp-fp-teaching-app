@@ -35,7 +35,12 @@ export function QueryListSection<T>({
 }: QueryListSectionProps<T>) {
   if (isPending) {
     return (
-      <div aria-label={loadingLabel} className="space-y-3">
+      <div
+        role="status"
+        aria-busy="true"
+        aria-label={loadingLabel}
+        className="space-y-3"
+      >
         {Array.from({ length: loadingCount }, (_, index) => (
           <div key={index} className="h-20 animate-pulse rounded-lg bg-muted" />
         ))}
