@@ -1,4 +1,3 @@
-import { geminiService, type GeminiService } from "./gemini.service";
 import { platformPolicies, type PlatformPolicy } from "./general-policy.context";
 
 export type AssistantSource = {
@@ -13,11 +12,10 @@ export type AssistantResponse = {
   sources?: AssistantSource[];
 };
 
-const SYSTEM_INSTRUCTION = `You are MentorLane Assistant. Answer only general questions about how the platform works.
-
-Use only the approved platform-policy context supplied with the request. You do not have access to private courses, lesson content, grades, submissions, student private information, or instructor analytics.
-
-If asked about a particular course, lesson, or private student/instructor data, explain that the Course Assistant inside that course is the right place to ask. If the answer is not supported by the supplied policies, say that you do not have enough information. Never invent platform rules.`;
+const COURSE_ASSISTANT_REDIRECT =
+  "I do not have access to specific course or lesson details. Please ask the Course Assistant inside that course.";
+const INSUFFICIENT_INFORMATION =
+  "I do not have enough information to answer that question.";
 
 function matchingPolicies(message: string): PlatformPolicy[] {
   const normalized = message.toLowerCase();
@@ -26,34 +24,37 @@ function matchingPolicies(message: string): PlatformPolicy[] {
   );
 }
 
-function buildPolicyContext(policies: PlatformPolicy[]): string {
-  if (!policies.length) return "No approved policy supports this question.";
+function isCourseOrLessonRequest(message: string): boolean {
+  const normalized = message.toLowerCase();
 
-  return policies
-    .map((policy) => `- ${policy.title}: ${policy.content}`)
-    .join("\n");
+  return (
+    /\b(lesson|module|curriculum|syllabus)\b/.test(normalized) ||
+    /\b(?:my|this|specific|particular)\s+course\b/.test(normalized) ||
+    /\b(?:course|lesson)\s+(?:content|material|details|outline|topic)\b/.test(
+      normalized,
+    )
+  );
 }
 
 export class GeneralAssistantService {
-  constructor(private readonly ai: GeminiService = geminiService) {}
-
   async respond(message: string): Promise<AssistantResponse> {
+    if (isCourseOrLessonRequest(message)) {
+      return { type: "message", answer: COURSE_ASSISTANT_REDIRECT };
+    }
+
     const policies = matchingPolicies(message);
-    const result = await this.ai.generateText({
-      input: `Approved platform-policy context:\n${buildPolicyContext(policies)}\n\nUser question: ${message}`,
-      systemInstruction: SYSTEM_INSTRUCTION,
-    });
+    if (!policies.length) {
+      return { type: "message", answer: INSUFFICIENT_INFORMATION };
+    }
 
     return {
       type: "message",
-      answer: result.text,
-      ...(policies.length > 0 && {
-        sources: policies.map(({ id, title }) => ({
-          type: "policy" as const,
-          id,
-          title,
-        })),
-      }),
+      answer: policies.map((policy) => policy.content).join("\n\n"),
+      sources: policies.map(({ id, title }) => ({
+        type: "policy" as const,
+        id,
+        title,
+      })),
     };
   }
 }

@@ -1,41 +1,37 @@
 import { GeneralAssistantService } from "../../src/services/ai/general-assistant.service";
-import type { GeminiService } from "../../src/services/ai/gemini.service";
 
 describe("GeneralAssistantService", () => {
-  const generateText = jest.fn();
-  const service = new GeneralAssistantService({
-    generateText,
-  } as unknown as GeminiService);
+  const service = new GeneralAssistantService();
 
-  beforeEach(() => {
-    generateText.mockReset();
-    generateText.mockResolvedValue({ text: "Use the Grades page.", steps: [] });
-  });
-
-  it("uses matching approved policy and returns it as a source", async () => {
+  it("renders matching approved policy content and returns its source", async () => {
     const response = await service.respond("Where can I see my grades?");
 
     expect(response).toEqual({
       type: "message",
-      answer: "Use the Grades page.",
+      answer:
+        "Students can view graded submissions and feedback from the Grades page.",
       sources: [{ type: "policy", id: "grades", title: "Grades" }],
     });
-    expect(generateText).toHaveBeenCalledWith(
-      expect.objectContaining({
-        input: expect.stringContaining("Grades page"),
-        systemInstruction: expect.stringContaining("approved platform-policy context"),
-      }),
-    );
   });
 
-  it("does not provide unapproved policy context for unsupported questions", async () => {
-    const response = await service.respond("What is the next React lesson?");
-
-    expect(response.sources).toBeUndefined();
-    expect(generateText).toHaveBeenCalledWith(
-      expect.objectContaining({
-        input: expect.stringContaining("No approved policy supports this question."),
-      }),
+  it("redirects course or lesson questions before matching policies", async () => {
+    const response = await service.respond(
+      "How do I submit the next lesson milestone?",
     );
+
+    expect(response).toEqual({
+      type: "message",
+      answer:
+        "I do not have access to specific course or lesson details. Please ask the Course Assistant inside that course.",
+    });
+  });
+
+  it("returns insufficient information for unsupported questions", async () => {
+    const response = await service.respond("What time does support open?");
+
+    expect(response).toEqual({
+      type: "message",
+      answer: "I do not have enough information to answer that question.",
+    });
   });
 });
