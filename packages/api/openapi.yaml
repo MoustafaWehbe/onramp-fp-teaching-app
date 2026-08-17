@@ -198,6 +198,35 @@ components:
           items:
             $ref: "#/components/schemas/CourseAssistantSource"
 
+    InstructorAssistantSource:
+      type: object
+      additionalProperties: false
+      required: [type, id, title]
+      properties:
+        type:
+          type: string
+          enum: [lesson, milestone]
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+
+    InstructorAssistantMessage:
+      type: object
+      additionalProperties: false
+      required: [type, answer, sources]
+      properties:
+        type:
+          type: string
+          enum: [message]
+        answer:
+          type: string
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/InstructorAssistantSource"
+
     Module:
       type: object
       required: [id, courseId, title, order]
@@ -816,6 +845,81 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "503":
           description: Retrieval or generation is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /courses/{courseId}/instructor-assistant:
+    post:
+      tags: [Courses]
+      summary: Ask the read-only Instructor Assistant for one course
+      description: Available only to the instructor who owns the requested course. The assistant can read course content and scoped operational statistics but cannot mutate data.
+      operationId: askInstructorAssistant
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CourseAssistantRequest"
+      responses:
+        "200":
+          description: A course-scoped read-only instructor answer
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/InstructorAssistantMessage"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Instructor role and course ownership required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Course not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many assistant requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Tool selection or answer generation failed safely
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Course data, retrieval, or generation is unavailable
           content:
             application/json:
               schema:

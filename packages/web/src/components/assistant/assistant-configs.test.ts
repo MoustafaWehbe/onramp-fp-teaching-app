@@ -26,15 +26,6 @@ describe("assistant identity configs", () => {
     expect(first.badge).toBe("COURSE");
   });
 
-  it("uses Instructor Workspace without a course context", () => {
-    expect(instructorAssistant()).toMatchObject({
-      id: "instructor:workspace",
-      name: "Instructor Assistant",
-      badge: "INSTRUCTOR",
-      subtitle: "Instructor Workspace",
-    });
-  });
-
   it("uses a stable ID and managing subtitle with instructor course context", () => {
     expect(instructorAssistant("course-7", "TypeScript Basics")).toMatchObject({
       id: "instructor:course-7",
@@ -42,10 +33,12 @@ describe("assistant identity configs", () => {
     });
   });
 
-  it("keeps the course-specific instructor ID while its title is unavailable", () => {
-    expect(instructorAssistant("course-7", "")).toMatchObject({
-      id: "instructor:course-7",
-      subtitle: "Instructor Workspace",
-    });
+  it("suggests only operations supported by the current schema", () => {
+    const config = instructorAssistant("course-7", "TypeScript Basics");
+
+    expect(config.description).not.toMatch(/deadline|due date|overdue/i);
+    expect(config.suggestedPrompts.join(" ")).not.toMatch(
+      /deadline|due next|overdue/i,
+    );
   });
 });
