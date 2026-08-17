@@ -9,6 +9,7 @@ import {
   Play,
   RefreshCw,
 } from "lucide-react";
+import { InstructorContextAssistant } from "../../components/assistant";
 import { StatusBadge } from "../../components/shared/StatusBadge";
 import { Button, buttonVariants } from "../../components/ui/button";
 import {
@@ -413,6 +414,11 @@ export function ReviewSubmissionPage() {
           </CardContent>
         </Card>
       </div>
+
+      <InstructorContextAssistant
+        courseId={courseQuery.data.id}
+        courseTitle={courseQuery.data.title}
+      />
     </div>
   );
 }

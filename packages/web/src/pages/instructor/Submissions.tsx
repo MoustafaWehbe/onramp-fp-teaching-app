@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CircleAlert, Inbox, RefreshCw } from "lucide-react";
+import { InstructorContextAssistant } from "../../components/assistant";
 import { EmptyState } from "../../components/shared/EmptyState";
 import { StatusBadge } from "../../components/shared/StatusBadge";
 import { Button } from "../../components/ui/button";
@@ -257,6 +258,11 @@ export function SubmissionsPage() {
           )}
         </>
       )}
+
+      <InstructorContextAssistant
+        courseId={selectedCourse?.id}
+        courseTitle={selectedCourse?.title}
+      />
     </div>
   );
 }
