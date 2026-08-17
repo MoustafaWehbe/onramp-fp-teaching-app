@@ -1,6 +1,10 @@
 import { GoogleGenAI, type Interactions } from "@google/genai";
 import { AIError, AIErrorCode } from "./ai.errors";
-import type { AIMessage, GenerateTextOptions } from "./ai.types";
+import type {
+  AIMessage,
+  GenerateTextOptions,
+  GenerateTextResult,
+} from "./ai.types";
 
 export const DEFAULT_GEMINI_MODEL = "gemini-3.6-flash";
 
@@ -18,8 +22,20 @@ function buildInput(
     return options.input;
   }
 
+  const historySteps: Interactions.Step[] = [];
+  for (const msg of options.history) {
+    // If the message has preserved provider steps, replay them verbatim
+    // (preserves thought steps with signatures for thinking-enabled models)
+    if (msg.steps?.length) {
+      historySteps.push(...msg.steps);
+    } else {
+      // Fall back to synthesizing a text-only step from content
+      historySteps.push(toTextStep(msg));
+    }
+  }
+
   return [
-    ...options.history.map(toTextStep),
+    ...historySteps,
     toTextStep({ role: "user", content: options.input }),
   ];
 }
@@ -47,7 +63,9 @@ export class GeminiService {
     return this.client;
   }
 
-  async generateText(options: GenerateTextOptions): Promise<string> {
+  async generateText(
+    options: GenerateTextOptions,
+  ): Promise<GenerateTextResult> {
     const request = {
       model: process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL,
       input: buildInput(options),
@@ -75,7 +93,10 @@ export class GeminiService {
       throw new AIError(AIErrorCode.INVALID_RESPONSE);
     }
 
-    return output;
+    return {
+      text: output,
+      steps: interaction.steps ?? [],
+    };
   }
 }
 

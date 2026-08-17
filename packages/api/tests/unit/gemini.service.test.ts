@@ -67,12 +67,22 @@ describe("GeminiService", () => {
     expect(MockGoogleGenAI).not.toHaveBeenCalled();
   });
 
-  it("returns trimmed text from a valid interaction", async () => {
-    createInteractionMock.mockResolvedValue({ output_text: "  Hello there  " });
+  it("returns trimmed text and steps from a valid interaction", async () => {
+    const mockSteps: Interactions.Step[] = [
+      { type: "user_input", content: [{ type: "text", text: "Say hello" }] },
+      { type: "model_output", content: [{ type: "text", text: "Hello there" }] },
+    ];
+    createInteractionMock.mockResolvedValue({
+      output_text: "  Hello there  ",
+      steps: mockSteps,
+    });
 
     await expect(
       new GeminiService().generateText({ input: "Say hello" }),
-    ).resolves.toBe("Hello there");
+    ).resolves.toEqual({
+      text: "Hello there",
+      steps: mockSteps,
+    });
   });
 
   it("passes the system instruction to the interaction", async () => {
@@ -110,7 +120,10 @@ describe("GeminiService", () => {
   });
 
   it("translates application history into stateless interaction steps", async () => {
-    createInteractionMock.mockResolvedValue({ output_text: "Three" });
+    createInteractionMock.mockResolvedValue({
+      output_text: "Three",
+      steps: [],
+    });
 
     await new GeminiService().generateText({
       input: "How many now?",
@@ -134,6 +147,96 @@ describe("GeminiService", () => {
         content: [{ type: "text", text: "How many now?" }],
       },
     ]);
+  });
+
+  it("preserves and replays original provider steps (including thought steps with signatures)", async () => {
+    const thoughtStepWithSignature: Interactions.ThoughtStep = {
+      type: "thought",
+      signature: "opaque-signature-abc123",
+      summary: [{ type: "text", text: "Let me think about this..." }],
+    };
+
+    const preservedSteps: Interactions.Step[] = [
+      thoughtStepWithSignature,
+      {
+        type: "model_output",
+        content: [{ type: "text", text: "You have two courses." }],
+      },
+    ];
+
+    createInteractionMock.mockResolvedValue({
+      output_text: "Three",
+      steps: [],
+    });
+
+    await new GeminiService().generateText({
+      input: "How many now?",
+      history: [
+        { role: "user", content: "I have two courses." },
+        {
+          role: "assistant",
+          content: "You have two courses.",
+          steps: preservedSteps,
+        },
+      ],
+    });
+
+    const sentInput = getLastRequest().input as Interactions.Step[];
+    expect(sentInput).toEqual([
+      {
+        type: "user_input",
+        content: [{ type: "text", text: "I have two courses." }],
+      },
+      // The preserved steps should be replayed exactly as-is
+      thoughtStepWithSignature,
+      {
+        type: "model_output",
+        content: [{ type: "text", text: "You have two courses." }],
+      },
+      {
+        type: "user_input",
+        content: [{ type: "text", text: "How many now?" }],
+      },
+    ]);
+
+    // Verify the thought step with signature is present and unchanged
+    expect(sentInput[1]).toEqual(thoughtStepWithSignature);
+    expect((sentInput[1] as Interactions.ThoughtStep).signature).toBe(
+      "opaque-signature-abc123",
+    );
+  });
+
+  it("returns provider steps unchanged so they can be stored for next turn", async () => {
+    const thoughtStep: Interactions.ThoughtStep = {
+      type: "thought",
+      signature: "provider-signature-xyz",
+      summary: [{ type: "text", text: "Analyzing the question..." }],
+    };
+
+    const outputStep: Interactions.ModelOutputStep = {
+      type: "model_output",
+      content: [{ type: "text", text: "The answer is 42." }],
+    };
+
+    const providerReturnedSteps: Interactions.Step[] = [
+      thoughtStep,
+      outputStep,
+    ];
+
+    createInteractionMock.mockResolvedValue({
+      output_text: "The answer is 42.",
+      steps: providerReturnedSteps,
+    });
+
+    const result = await new GeminiService().generateText({
+      input: "What is the answer?",
+    });
+
+    expect(result.steps).toEqual(providerReturnedSteps);
+    expect(result.steps).toHaveLength(2);
+    expect((result.steps[0] as Interactions.ThoughtStep).signature).toBe(
+      "provider-signature-xyz",
+    );
   });
 
   it("normalizes provider failures without leaking their message", async () => {
