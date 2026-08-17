@@ -40,10 +40,11 @@ describe("courseAssistantController", () => {
 
   afterEach(() => jest.restoreAllMocks());
 
-  it("allows an enrolled student and authorizes before retrieval", async () => {
-    jest.spyOn(Course, "findByPk").mockResolvedValue({
+  it("allows an enrolled student to use a published course assistant", async () => {
+    const findCourse = jest.spyOn(Course, "findByPk").mockResolvedValue({
       id: "course-1",
       instructorId: "instructor-1",
+      isPublished: true,
     } as Course);
     jest
       .spyOn(Enrollment, "findOne")
@@ -53,6 +54,9 @@ describe("courseAssistantController", () => {
 
     await courseAssistantController.ask(requestFor("student"), response, next);
 
+    expect(findCourse).toHaveBeenCalledWith("course-1", {
+      attributes: ["id", "instructorId", "isPublished"],
+    });
     expect(Enrollment.findOne).toHaveBeenCalledWith({
       where: { courseId: "course-1", studentId: "student-1" },
       attributes: ["id"],
@@ -69,10 +73,34 @@ describe("courseAssistantController", () => {
     expect(next).not.toHaveBeenCalled();
   });
 
+  it("rejects an enrolled student from an unpublished course before indexing, retrieval, or Gemini", async () => {
+    jest.spyOn(Course, "findByPk").mockResolvedValue({
+      id: "course-1",
+      instructorId: "instructor-1",
+      isPublished: false,
+    } as Course);
+    const findEnrollment = jest
+      .spyOn(Enrollment, "findOne")
+      .mockResolvedValue({ id: "enrollment-1" } as Enrollment);
+    const response = responseMock();
+
+    await courseAssistantController.ask(
+      requestFor("student"),
+      response,
+      jest.fn(),
+    );
+
+    expect(response.status).toHaveBeenCalledWith(403);
+    expect(response.json).toHaveBeenCalledWith({ error: "Forbidden" });
+    expect(findEnrollment).not.toHaveBeenCalled();
+    expect(answerMock).not.toHaveBeenCalled();
+  });
+
   it("rejects a non-enrolled student before retrieval", async () => {
     jest.spyOn(Course, "findByPk").mockResolvedValue({
       id: "course-1",
       instructorId: "instructor-1",
+      isPublished: true,
     } as Course);
     jest.spyOn(Enrollment, "findOne").mockResolvedValue(null);
     const response = responseMock();
@@ -90,38 +118,44 @@ describe("courseAssistantController", () => {
     expect(answerMock).not.toHaveBeenCalled();
   });
 
-  it("allows only the course-owning instructor", async () => {
+  it("allows the course-owning instructor for an unpublished course", async () => {
     const findEnrollment = jest.spyOn(Enrollment, "findOne");
-    const findCourse = jest.spyOn(Course, "findByPk");
-    findCourse.mockResolvedValueOnce({
+    jest.spyOn(Course, "findByPk").mockResolvedValue({
       id: "course-1",
       instructorId: "instructor-1",
+      isPublished: false,
     } as Course);
-    const allowedResponse = responseMock();
+    const response = responseMock();
 
     await courseAssistantController.ask(
       requestFor("instructor"),
-      allowedResponse,
+      response,
       jest.fn(),
     );
 
     expect(answerMock).toHaveBeenCalledTimes(1);
     expect(findEnrollment).not.toHaveBeenCalled();
+    expect(response.json).toHaveBeenCalledWith({ data: responseContract });
+  });
 
-    answerMock.mockClear();
-    findCourse.mockResolvedValueOnce({
+  it("rejects a different instructor from an unpublished course", async () => {
+    const findEnrollment = jest.spyOn(Enrollment, "findOne");
+    jest.spyOn(Course, "findByPk").mockResolvedValue({
       id: "course-1",
       instructorId: "instructor-2",
+      isPublished: false,
     } as Course);
-    const deniedResponse = responseMock();
+    const response = responseMock();
 
     await courseAssistantController.ask(
       requestFor("instructor"),
-      deniedResponse,
+      response,
       jest.fn(),
     );
 
-    expect(deniedResponse.status).toHaveBeenCalledWith(403);
+    expect(response.status).toHaveBeenCalledWith(403);
+    expect(response.json).toHaveBeenCalledWith({ error: "Forbidden" });
+    expect(findEnrollment).not.toHaveBeenCalled();
     expect(answerMock).not.toHaveBeenCalled();
   });
 
@@ -145,6 +179,7 @@ describe("courseAssistantController", () => {
     jest.spyOn(Course, "findByPk").mockResolvedValue({
       id: "course-1",
       instructorId: "instructor-1",
+      isPublished: true,
     } as Course);
     jest
       .spyOn(Enrollment, "findOne")

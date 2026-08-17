@@ -9,7 +9,7 @@ export const courseAssistantController = {
       const courseId = req.params.courseId as string;
       const user = req.user!;
       const course = await Course.findByPk(courseId, {
-        attributes: ["id", "instructorId"],
+        attributes: ["id", "instructorId", "isPublished"],
       });
       if (!course) {
         res.status(404).json({ error: "Course not found" });
@@ -22,6 +22,11 @@ export const courseAssistantController = {
           return;
         }
       } else {
+        if (!course.isPublished) {
+          res.status(403).json({ error: "Forbidden" });
+          return;
+        }
+
         const enrollment = await Enrollment.findOne({
           where: { courseId, studentId: user.userId },
           attributes: ["id"],
