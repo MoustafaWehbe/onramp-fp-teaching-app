@@ -1,5 +1,5 @@
 import { Sequelize } from "sequelize";
-import { initModels } from "@starter-kit/shared";
+import { initModels } from "@starter-kit/shared/db/models";
 
 let sequelize: Sequelize | null = null;
 
