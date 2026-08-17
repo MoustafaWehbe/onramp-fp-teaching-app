@@ -112,6 +112,30 @@ describe("MultilingualE5Provider", () => {
     );
   });
 
+  it("retries a failed pipeline load and then reuses the successful pipeline", async () => {
+    const inference = jest.fn(async (inputs: readonly string[]) =>
+      tensor(inputs.map(() => unitVector())),
+    );
+    const loader = jest
+      .fn()
+      .mockRejectedValueOnce(new Error("cache temporarily unavailable"))
+      .mockResolvedValue(inference);
+    const provider = new MultilingualE5Provider({ pipelineLoader: loader });
+
+    await expect(provider.embedQuery("first attempt")).rejects.toBeInstanceOf(
+      EmbeddingModelLoadError,
+    );
+    await expect(provider.embedQuery("second attempt")).resolves.toEqual(
+      unitVector(),
+    );
+    await expect(provider.embedPassage("cached pipeline")).resolves.toEqual(
+      unitVector(),
+    );
+
+    expect(loader).toHaveBeenCalledTimes(2);
+    expect(inference).toHaveBeenCalledTimes(2);
+  });
+
   it("validates provider configuration", () => {
     expect(() => new MultilingualE5Provider({ batchSize: 0 })).toThrow(
       EmbeddingConfigurationError,

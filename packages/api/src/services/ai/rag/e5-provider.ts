@@ -145,7 +145,12 @@ export class MultilingualE5Provider implements EmbeddingProvider {
   }
 
   private loadPipeline(): Promise<FeatureExtractor> {
-    this.pipelinePromise ??= this.pipelineLoader().catch((error: unknown) => {
+    if (this.pipelinePromise) return this.pipelinePromise;
+
+    const pipelinePromise = this.pipelineLoader().catch((error: unknown) => {
+      if (this.pipelinePromise === pipelinePromise) {
+        this.pipelinePromise = undefined;
+      }
       if (
         error instanceof EmbeddingConfigurationError ||
         error instanceof EmbeddingModelLoadError
@@ -157,7 +162,8 @@ export class MultilingualE5Provider implements EmbeddingProvider {
         { cause: error },
       );
     });
-    return this.pipelinePromise;
+    this.pipelinePromise = pipelinePromise;
+    return pipelinePromise;
   }
 
   private async embedFormatted(inputs: readonly string[]): Promise<number[][]> {

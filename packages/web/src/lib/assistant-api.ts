@@ -14,6 +14,7 @@ type CourseAssistantApiResponse =
 
 export const MAX_ASSISTANT_HISTORY_MESSAGES = 8;
 export const MAX_ASSISTANT_HISTORY_CONTENT = 1_500;
+export const ASSISTANT_REQUEST_TIMEOUT_MS = 60_000;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -66,6 +67,7 @@ export async function sendCourseAssistantMessage(
   courseId: string,
   message: string,
   history: readonly AssistantMessage[],
+  signal?: AbortSignal,
 ): Promise<AssistantResponse> {
   const body: CourseAssistantRequest = {
     message,
@@ -77,6 +79,7 @@ export async function sendCourseAssistantMessage(
     ({ data: response } = await apiClient.post<CourseAssistantApiResponse>(
       `/courses/${encodeURIComponent(courseId)}/assistant`,
       body,
+      { signal, timeout: ASSISTANT_REQUEST_TIMEOUT_MS },
     ));
   } catch (error) {
     throw new Error(

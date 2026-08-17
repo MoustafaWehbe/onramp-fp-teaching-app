@@ -60,6 +60,7 @@ export function AssistantPanel({
   );
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const activeRequestRef = useRef<AbortController | null>(null);
   const Icon = config.icon;
 
   useEffect(() => {
@@ -75,12 +76,23 @@ export function AssistantPanel({
     inputRef.current?.focus();
   }, []);
 
+  useEffect(
+    () => () => {
+      activeRequestRef.current?.abort();
+      activeRequestRef.current = null;
+    },
+    [],
+  );
+
   async function run(message: string, history: AssistantMessage[]) {
+    const controller = new AbortController();
+    activeRequestRef.current = controller;
     setLoading(true);
     setError(null);
 
     try {
-      const response = await onSend(message, history);
+      const response = await onSend(message, history, controller.signal);
+      if (controller.signal.aborted) return;
       const assistantMessage: AssistantMessage = {
         id: nextMessageId(),
         role: "assistant",
@@ -94,6 +106,7 @@ export function AssistantPanel({
       setMessages((current) => [...current, assistantMessage]);
       setFailedAttempt(null);
     } catch (caughtError) {
+      if (controller.signal.aborted) return;
       setError(
         caughtError instanceof Error
           ? caughtError.message
@@ -101,7 +114,10 @@ export function AssistantPanel({
       );
       setFailedAttempt({ message, history });
     } finally {
-      setLoading(false);
+      if (activeRequestRef.current === controller) {
+        activeRequestRef.current = null;
+      }
+      if (!controller.signal.aborted) setLoading(false);
     }
   }
 

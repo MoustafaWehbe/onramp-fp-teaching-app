@@ -241,25 +241,17 @@ export async function indexLesson(
     };
   }
 
-  let embeddings: number[][] = [];
-  try {
-    const generated = await provider.embedPassages(
-      expected.map((chunk) => chunk.content),
+  const generated = await provider.embedPassages(
+    expected.map((chunk) => chunk.content),
+  );
+  if (generated.length !== expected.length) {
+    throw new Error(
+      `Embedding provider returned ${generated.length} vectors for ${expected.length} chunks`,
     );
-    if (generated.length !== expected.length) {
-      throw new Error(
-        `Embedding provider returned ${generated.length} vectors for ${expected.length} chunks`,
-      );
-    }
-    embeddings = generated.map((embedding) =>
-      normalizeEmbedding(embedding, E5_EMBEDDING_DIMENSION),
-    );
-  } catch (error) {
-    if (persisted.length > 0) {
-      await repository.deleteLessonChunks(lessonId);
-    }
-    throw error;
   }
+  const embeddings = generated.map((embedding) =>
+    normalizeEmbedding(embedding, E5_EMBEDDING_DIMENSION),
+  );
 
   const deleted = await repository.replaceLessonChunks(
     normalizedSource,
@@ -276,7 +268,9 @@ export async function indexLesson(
   };
 }
 
-export async function indexCourse(
+const courseIndexFlights = new Map<string, Promise<CourseIndexSummary>>();
+
+async function performCourseIndex(
   courseId: string,
   dependencies: CourseIngestionDependencies = {},
 ): Promise<CourseIndexSummary> {
@@ -303,4 +297,25 @@ export async function indexCourse(
   }
 
   return summary;
+}
+
+export function indexCourse(
+  courseId: string,
+  dependencies: CourseIngestionDependencies = {},
+): Promise<CourseIndexSummary> {
+  const currentFlight = courseIndexFlights.get(courseId);
+  if (currentFlight) return currentFlight;
+
+  // Each completed call still scans lesson metadata/chunk hashes for freshness.
+  // indexLesson skips embedding unchanged content, while this single-flight map
+  // prevents concurrent assistant requests from duplicating that work.
+  const nextFlight = performCourseIndex(courseId, dependencies);
+  courseIndexFlights.set(courseId, nextFlight);
+  const clearFlight = () => {
+    if (courseIndexFlights.get(courseId) === nextFlight) {
+      courseIndexFlights.delete(courseId);
+    }
+  };
+  void nextFlight.then(clearFlight, clearFlight);
+  return nextFlight;
 }

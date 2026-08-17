@@ -32,4 +32,5 @@ export type AssistantConfig = {
 export type AssistantSend = (
   message: string,
   history: AssistantMessage[],
+  signal?: AbortSignal,
 ) => Promise<AssistantResponse>;

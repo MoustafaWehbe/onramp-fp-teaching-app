@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AssistantMessage } from "../components/assistant/types";
 import { apiClient } from "./api-client";
 import {
+  ASSISTANT_REQUEST_TIMEOUT_MS,
   MAX_ASSISTANT_HISTORY_MESSAGES,
   sendCourseAssistantMessage,
 } from "./assistant-api";
@@ -37,10 +38,35 @@ describe("Course Assistant API", () => {
     await expect(
       sendCourseAssistantMessage("course/id", "What is invalidation?", []),
     ).resolves.toEqual(response.data.data);
-    expect(postMock).toHaveBeenCalledWith("/courses/course%2Fid/assistant", {
-      message: "What is invalidation?",
-      history: [],
-    });
+    expect(postMock).toHaveBeenCalledWith(
+      "/courses/course%2Fid/assistant",
+      {
+        message: "What is invalidation?",
+        history: [],
+      },
+      { signal: undefined, timeout: ASSISTANT_REQUEST_TIMEOUT_MS },
+    );
+  });
+
+  it("passes cancellation and a bounded timeout to the API client", async () => {
+    postMock.mockResolvedValueOnce(response as never);
+    const controller = new AbortController();
+
+    await sendCourseAssistantMessage(
+      "course-1",
+      "Question?",
+      [],
+      controller.signal,
+    );
+
+    expect(postMock).toHaveBeenCalledWith(
+      "/courses/course-1/assistant",
+      { message: "Question?", history: [] },
+      {
+        signal: controller.signal,
+        timeout: ASSISTANT_REQUEST_TIMEOUT_MS,
+      },
+    );
   });
 
   it("sends only bounded recent text history", async () => {

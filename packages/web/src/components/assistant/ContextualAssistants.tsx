@@ -28,8 +28,8 @@ export function CourseContextAssistant({
 }) {
   const { user } = useAuth();
   const sendCourseMessage = useCallback(
-    (message: string, history: AssistantMessage[]) =>
-      sendCourseAssistantMessage(courseId, message, history),
+    (message: string, history: AssistantMessage[], signal?: AbortSignal) =>
+      sendCourseAssistantMessage(courseId, message, history, signal),
     [courseId],
   );
   if (!user) return null;

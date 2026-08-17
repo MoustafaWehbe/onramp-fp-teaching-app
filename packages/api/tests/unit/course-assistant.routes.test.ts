@@ -65,6 +65,14 @@ describe("POST /api/courses/:courseId/assistant", () => {
 
       expect(response.status).toBe(422);
       expect(response.body.error).toBe("Validation failed");
+      expect(response.body.errors).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            field: expect.any(String),
+            message: expect.any(String),
+          }),
+        ]),
+      );
       expect(askMock).not.toHaveBeenCalled();
     },
   );

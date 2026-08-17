@@ -522,14 +522,16 @@ components:
 
     ValidationErrorResponse:
       type: object
+      required: [error, errors]
       properties:
         error:
           type: string
           example: Validation failed
-        details:
+        errors:
           type: array
           items:
             type: object
+            required: [field, message]
             properties:
               field:
                 type: string
@@ -801,7 +803,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: "#/components/schemas/ValidationErrorResponse"
         "429":
           description: Too many assistant requests
           content:

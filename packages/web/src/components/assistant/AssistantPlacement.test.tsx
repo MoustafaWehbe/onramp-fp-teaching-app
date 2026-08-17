@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuth } from "../../hooks/useAuth";
 import { AppLayout, hasSpecializedAssistant } from "../../layouts/AppLayout";
 import { apiClient } from "../../lib/api-client";
+import { ASSISTANT_REQUEST_TIMEOUT_MS } from "../../lib/assistant-api";
 import { AppRoutes } from "../../routes";
 import { renderWithProviders } from "../../test/test-utils";
 import { clearAssistantConversations } from "./conversation-store";
@@ -164,10 +165,17 @@ describe("assistant placement", () => {
       ),
     ).toBeInTheDocument();
     expect(screen.getByText("React Query Fundamentals")).toBeInTheDocument();
-    expect(postMock).toHaveBeenCalledWith("/courses/course-1/assistant", {
-      message: "What is invalidation?",
-      history: [],
-    });
+    expect(postMock).toHaveBeenCalledWith(
+      "/courses/course-1/assistant",
+      {
+        message: "What is invalidation?",
+        history: [],
+      },
+      {
+        signal: expect.any(AbortSignal),
+        timeout: ASSISTANT_REQUEST_TIMEOUT_MS,
+      },
+    );
   });
 
   it("keeps API failures retryable through the existing panel", async () => {

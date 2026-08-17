@@ -97,6 +97,14 @@ function repositoryFixture(initialSource = source()) {
   };
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((promiseResolve) => {
+    resolve = promiseResolve;
+  });
+  return { promise, resolve };
+}
+
 describe("course lesson ingestion", () => {
   it("turns lesson content into embedded chunks with course metadata", async () => {
     const fixture = repositoryFixture(
@@ -229,7 +237,7 @@ describe("course lesson ingestion", () => {
     expect(embeddingProvider.embedPassages).toHaveBeenCalledWith([]);
   });
 
-  it("invalidates stale chunks if refreshed embedding fails", async () => {
+  it("preserves valid chunks if refreshed embedding fails", async () => {
     const fixture = repositoryFixture(source("Old content"));
     const embeddingProvider = provider();
     await indexLesson("lesson-1", {
@@ -247,8 +255,9 @@ describe("course lesson ingestion", () => {
         provider: embeddingProvider,
       }),
     ).rejects.toThrow("model unavailable");
-    expect(fixture.deleteLessonChunks).toHaveBeenCalledWith("lesson-1");
-    expect(fixture.persisted()).toEqual([]);
+    expect(fixture.deleteLessonChunks).not.toHaveBeenCalled();
+    expect(fixture.replaceLessonChunks).toHaveBeenCalledTimes(1);
+    expect(fixture.persisted()[0]?.content).toBe("Old content");
   });
 
   it("indexes every lesson in a course and reports aggregate counts", async () => {
@@ -290,5 +299,87 @@ describe("course lesson ingestion", () => {
       lessonsChanged: 2,
       chunksCreated: 2,
     });
+  });
+
+  it("shares one indexing operation between concurrent course requests", async () => {
+    const fixture = repositoryFixture();
+    const lessonIds = deferred<string[]>();
+    fixture.repository.listCourseLessonIds = jest.fn(() => lessonIds.promise);
+    const embeddingProvider = provider();
+
+    const first = indexCourse("course-concurrent", {
+      repository: fixture.repository,
+      provider: embeddingProvider,
+    });
+    const second = indexCourse("course-concurrent", {
+      repository: fixture.repository,
+      provider: embeddingProvider,
+    });
+
+    expect(second).toBe(first);
+    expect(fixture.repository.listCourseLessonIds).toHaveBeenCalledTimes(1);
+    lessonIds.resolve(["lesson-1"]);
+    await Promise.all([first, second]);
+
+    expect(embeddingProvider.embedPassages).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not regenerate embeddings for an unchanged course", async () => {
+    const fixture = repositoryFixture();
+    const embeddingProvider = provider();
+    await indexCourse("course-unchanged", {
+      repository: fixture.repository,
+      provider: embeddingProvider,
+    });
+    embeddingProvider.embedPassages.mockClear();
+
+    await indexCourse("course-unchanged", {
+      repository: fixture.repository,
+      provider: embeddingProvider,
+    });
+
+    expect(embeddingProvider.embedPassages).not.toHaveBeenCalled();
+  });
+
+  it("reindexes a changed lesson after a completed course index", async () => {
+    const fixture = repositoryFixture(source("Original content"));
+    const embeddingProvider = provider();
+    await indexCourse("course-changed", {
+      repository: fixture.repository,
+      provider: embeddingProvider,
+    });
+    fixture.setSource(source("Updated content"));
+    embeddingProvider.embedPassages.mockClear();
+
+    await indexCourse("course-changed", {
+      repository: fixture.repository,
+      provider: embeddingProvider,
+    });
+
+    expect(embeddingProvider.embedPassages).toHaveBeenCalledTimes(1);
+    expect(fixture.persisted()[0]?.content).toBe("Updated content");
+  });
+
+  it("allows a later course index to retry after a failed flight", async () => {
+    const fixture = repositoryFixture();
+    const embeddingProvider = provider();
+    embeddingProvider.embedPassages.mockRejectedValueOnce(
+      new Error("temporary embedding failure"),
+    );
+
+    await expect(
+      indexCourse("course-retry", {
+        repository: fixture.repository,
+        provider: embeddingProvider,
+      }),
+    ).rejects.toThrow("temporary embedding failure");
+
+    await expect(
+      indexCourse("course-retry", {
+        repository: fixture.repository,
+        provider: embeddingProvider,
+      }),
+    ).resolves.toMatchObject({ lessonsChanged: 1, chunksCreated: 1 });
+    expect(embeddingProvider.embedPassages).toHaveBeenCalledTimes(2);
   });
 });

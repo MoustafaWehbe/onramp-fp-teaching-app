@@ -651,12 +651,12 @@ export interface components {
         };
         ValidationErrorResponse: {
             /** @example Validation failed */
-            error?: string;
-            details?: {
+            error: string;
+            errors: {
                 /** @example email */
-                field?: string;
+                field: string;
                 /** @example Invalid email address */
-                message?: string;
+                message: string;
             }[];
         };
     };
@@ -982,7 +982,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
                 };
             };
             /** @description Too many assistant requests */
