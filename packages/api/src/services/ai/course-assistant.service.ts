@@ -17,6 +17,7 @@ import { loadCourseRagConfig, type CourseRagConfig } from "./rag/rag-config";
 
 export const MAX_COURSE_ASSISTANT_HISTORY_MESSAGES = 8;
 export const MAX_COURSE_ASSISTANT_HISTORY_CONTENT = 1_500;
+export const COURSE_INDEX_WAIT_TIMEOUT_MS = 2_000;
 
 export interface CourseAssistantSource {
   type: "lesson";
@@ -93,6 +94,39 @@ function safeConfig(
   }
 }
 
+type CourseIndexWaitOutcome =
+  | { status: "completed" }
+  | { status: "failed"; error: unknown }
+  | { status: "timed-out" };
+
+async function waitForCourseIndex(indexing: Promise<unknown>): Promise<void> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  // Convert failure into an observed outcome so rejection remains handled even
+  // when the timeout wins the race and retrieval has already continued.
+  const observedIndexing = indexing.then<
+    CourseIndexWaitOutcome,
+    CourseIndexWaitOutcome
+  >(
+    () => ({ status: "completed" }),
+    (error: unknown) => ({ status: "failed", error }),
+  );
+  const timeout = new Promise<CourseIndexWaitOutcome>((resolve) => {
+    timeoutId = setTimeout(
+      () => resolve({ status: "timed-out" }),
+      COURSE_INDEX_WAIT_TIMEOUT_MS,
+    );
+  });
+
+  let outcome: CourseIndexWaitOutcome;
+  try {
+    outcome = await Promise.race([observedIndexing, timeout]);
+  } finally {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+  }
+
+  if (outcome.status === "failed") throw outcome.error;
+}
+
 export async function answerCourseQuestion(
   options: AnswerCourseQuestionOptions,
   dependencies: CourseAssistantDependencies = {},
@@ -101,7 +135,8 @@ export async function answerCourseQuestion(
 
   let results: CourseSemanticSearchResult[];
   try {
-    await (dependencies.index ?? indexCourse)(options.courseId);
+    const indexing = (dependencies.index ?? indexCourse)(options.courseId);
+    await waitForCourseIndex(indexing);
     results = await (dependencies.search ?? semanticSearchCourse)({
       courseId: options.courseId,
       query: options.message,

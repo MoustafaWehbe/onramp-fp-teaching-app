@@ -1,6 +1,7 @@
 import { AIError, AIErrorCode } from "../../src/services/ai";
 import {
   answerCourseQuestion,
+  COURSE_INDEX_WAIT_TIMEOUT_MS,
   MAX_COURSE_ASSISTANT_HISTORY_MESSAGES,
 } from "../../src/services/ai/course-assistant.service";
 import type { CourseSemanticSearchResult } from "../../src/services/ai/rag/course-retrieval.service";
@@ -48,17 +49,36 @@ function dependencies(
   return { index, search, generateText, ragConfig };
 }
 
-describe("answerCourseQuestion", () => {
-  it("indexes and retrieves using the authorized course and current question", async () => {
-    const fixture = dependencies([result(1)]);
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
+}
 
-    await answerCourseQuestion(
+describe("answerCourseQuestion", () => {
+  afterEach(() => jest.useRealTimers());
+
+  it("awaits fast indexing before retrieving the authorized course", async () => {
+    const fixture = dependencies([result(1)]);
+    const indexing = deferred<void>();
+    fixture.index.mockReturnValueOnce(indexing.promise);
+
+    const answer = answerCourseQuestion(
       {
         courseId: result(1).courseId,
         message: "What is the main idea?",
       },
       fixture,
     );
+
+    await Promise.resolve();
+    expect(fixture.search).not.toHaveBeenCalled();
+    indexing.resolve();
+    await answer;
 
     expect(fixture.index).toHaveBeenCalledWith(result(1).courseId);
     expect(fixture.search).toHaveBeenCalledWith({
@@ -69,6 +89,134 @@ describe("answerCourseQuestion", () => {
     expect(fixture.index.mock.invocationCallOrder[0]).toBeLessThan(
       fixture.search.mock.invocationCallOrder[0]!,
     );
+  });
+
+  it("continues retrieval when slow indexing reaches the bounded wait", async () => {
+    jest.useFakeTimers();
+    const fixture = dependencies([]);
+    const indexing = deferred<void>();
+    fixture.index.mockReturnValueOnce(indexing.promise);
+
+    const answer = answerCourseQuestion(
+      { courseId: "course-1", message: "Question?" },
+      fixture,
+    );
+    await Promise.resolve();
+    expect(fixture.search).not.toHaveBeenCalled();
+
+    await jest.advanceTimersByTimeAsync(COURSE_INDEX_WAIT_TIMEOUT_MS);
+
+    await expect(answer).resolves.toEqual({
+      type: "message",
+      answer: INSUFFICIENT_COURSE_EVIDENCE_ANSWER,
+      sources: [],
+    });
+    expect(fixture.search).toHaveBeenCalledTimes(1);
+
+    indexing.resolve();
+    await indexing.promise;
+  });
+
+  it("keeps timed-out single-flight indexing active without duplicate work", async () => {
+    jest.useFakeTimers();
+    const fixture = dependencies([]);
+    const indexing = deferred<void>();
+    const startIndexing = jest.fn(() => indexing.promise);
+    let activeIndex: Promise<void> | undefined;
+    fixture.index.mockImplementation(() => {
+      activeIndex ??= startIndexing();
+      return activeIndex;
+    });
+
+    const first = answerCourseQuestion(
+      { courseId: "course-1", message: "First question?" },
+      fixture,
+    );
+    const second = answerCourseQuestion(
+      { courseId: "course-1", message: "Second question?" },
+      fixture,
+    );
+    await Promise.resolve();
+
+    expect(startIndexing).toHaveBeenCalledTimes(1);
+    await jest.advanceTimersByTimeAsync(COURSE_INDEX_WAIT_TIMEOUT_MS);
+    await Promise.all([first, second]);
+
+    expect(fixture.search).toHaveBeenCalledTimes(2);
+    expect(startIndexing).toHaveBeenCalledTimes(1);
+    indexing.resolve();
+    await indexing.promise;
+  });
+
+  it("lets a later request use chunks produced by timed-out indexing", async () => {
+    jest.useFakeTimers();
+    const fixture = dependencies([]);
+    const indexing = deferred<void>();
+    let indexed = false;
+    void indexing.promise.then(() => {
+      indexed = true;
+    });
+    fixture.index.mockImplementation(() =>
+      indexed ? Promise.resolve() : indexing.promise,
+    );
+    fixture.search.mockImplementation(async () => (indexed ? [result(1)] : []));
+
+    const first = answerCourseQuestion(
+      { courseId: "course-1", message: "First question?" },
+      fixture,
+    );
+    await jest.advanceTimersByTimeAsync(COURSE_INDEX_WAIT_TIMEOUT_MS);
+    await expect(first).resolves.toEqual({
+      type: "message",
+      answer: INSUFFICIENT_COURSE_EVIDENCE_ANSWER,
+      sources: [],
+    });
+
+    indexing.resolve();
+    await indexing.promise;
+    await Promise.resolve();
+
+    await expect(
+      answerCourseQuestion(
+        { courseId: "course-1", message: "Try again?" },
+        fixture,
+      ),
+    ).resolves.toEqual({
+      type: "message",
+      answer: "Supported answer [1].",
+      sources: [{ type: "lesson", id: result(1).lessonId, title: "Lesson 1" }],
+    });
+  });
+
+  it("observes a late indexing rejection without an unhandled rejection", async () => {
+    jest.useFakeTimers();
+    const fixture = dependencies([]);
+    const indexing = deferred<void>();
+    const unhandledRejection = jest.fn();
+    process.on("unhandledRejection", unhandledRejection);
+    fixture.index.mockReturnValueOnce(indexing.promise);
+
+    try {
+      const answer = answerCourseQuestion(
+        { courseId: "course-1", message: "Question?" },
+        fixture,
+      );
+      await jest.advanceTimersByTimeAsync(COURSE_INDEX_WAIT_TIMEOUT_MS);
+      await expect(answer).resolves.toEqual({
+        type: "message",
+        answer: INSUFFICIENT_COURSE_EVIDENCE_ANSWER,
+        sources: [],
+      });
+
+      indexing.reject(new Error("secret provider detail"));
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(unhandledRejection).not.toHaveBeenCalled();
+      expect(fixture.search).toHaveBeenCalledTimes(1);
+    } finally {
+      process.off("unhandledRejection", unhandledRejection);
+    }
   });
 
   it("does not call Gemini when retrieval has no evidence", async () => {
@@ -223,7 +371,7 @@ describe("answerCourseQuestion", () => {
     });
   });
 
-  it("maps indexing or retrieval failures to a safe 503", async () => {
+  it("maps indexing rejection before the wait bound to a safe 503", async () => {
     const fixture = dependencies([result(1)]);
     fixture.index.mockRejectedValueOnce(new Error("database credentials"));
 
