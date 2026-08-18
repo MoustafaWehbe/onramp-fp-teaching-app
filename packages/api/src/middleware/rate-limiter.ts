@@ -17,3 +17,14 @@ export const authRateLimiter = rateLimit({
     error: "Too many authentication attempts, please try again later.",
   },
 });
+
+export const assistantRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1_000,
+  max: 20, // Gemini calls are costly — tighter than the general default
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: {
+    error: "Too many assistant requests, please try again later.",
+  },
+});
+
