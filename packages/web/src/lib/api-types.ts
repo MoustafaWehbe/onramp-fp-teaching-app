@@ -344,6 +344,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/assistant/general": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask the General Assistant a platform question (authenticated users only) */
+        post: operations["askGeneralAssistant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -658,6 +675,31 @@ export interface components {
                 /** @example Invalid email address */
                 message: string;
             }[];
+        };
+        AssistantMessageBody: {
+            /** @example How do I submit my milestone work? */
+            message: string;
+        };
+        AssistantSource: {
+            /**
+             * @example policy
+             * @enum {string}
+             */
+            type?: "policy" | "lesson" | "milestone";
+            /** @example submission-rules */
+            id?: string;
+            /** @example Submission Rules */
+            title?: string;
+        };
+        AssistantResponse: {
+            /**
+             * @example message
+             * @enum {string}
+             */
+            type?: "message";
+            /** @example You can submit via a GitHub, Loom, or Vercel link. */
+            answer?: string;
+            sources?: components["schemas"]["AssistantSource"][];
         };
     };
     responses: never;
@@ -1788,6 +1830,77 @@ export interface operations {
             };
             /** @description Forbidden - student only */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    askGeneralAssistant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssistantMessageBody"];
+            };
+        };
+        responses: {
+            /** @description Assistant answer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["AssistantResponse"];
+                    };
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AI provider error */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AI service not configured */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

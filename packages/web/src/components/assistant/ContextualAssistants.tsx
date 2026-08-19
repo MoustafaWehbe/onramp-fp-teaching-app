@@ -7,14 +7,14 @@ import {
   instructorAssistant,
 } from "./assistant-configs";
 import { AssistantLauncher } from "./AssistantLauncher";
-import { mockGeneralAssistant, mockInstructorAssistant } from "./mock-send";
+import { sendGeneralAssistant, mockInstructorAssistant } from "./mock-send";
 import type { AssistantMessage } from "./types";
 
 export function GeneralAssistantLauncher() {
   return (
     <AssistantLauncher
       config={generalAssistant}
-      onSend={mockGeneralAssistant}
+      onSend={sendGeneralAssistant}
     />
   );
 }

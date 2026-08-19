@@ -1,11 +1,17 @@
 import { apiClient } from "./api-client";
-import type { operations } from "./api-types";
+import type { components, operations } from "./api-types";
 import { getApiErrorMessage } from "./courses-api";
 import type {
   AssistantMessage,
   AssistantResponse,
   AssistantSource,
 } from "../components/assistant/types";
+
+type AssistantGeneralResponse =
+  operations["askGeneralAssistant"]["responses"][200]["content"]["application/json"];
+
+export type AssistantApiSource = components["schemas"]["AssistantSource"];
+export type AssistantApiResponse = components["schemas"]["AssistantResponse"];
 
 type CourseAssistantRequest =
   operations["askCourseAssistant"]["requestBody"]["content"]["application/json"];
@@ -61,6 +67,21 @@ function boundedHistory(history: readonly AssistantMessage[]) {
     const content = item.content.trim().slice(0, MAX_ASSISTANT_HISTORY_CONTENT);
     return content ? [{ role: item.role, content }] : [];
   });
+}
+
+export async function sendGeneralAssistantMessage(
+  message: string,
+): Promise<AssistantApiResponse> {
+  const { data } = await apiClient.post<AssistantGeneralResponse>(
+    "/assistant/general",
+    { message },
+  );
+
+  if (!data.data) {
+    throw new Error("The server returned an invalid assistant response.");
+  }
+
+  return data.data;
 }
 
 export async function sendCourseAssistantMessage(
