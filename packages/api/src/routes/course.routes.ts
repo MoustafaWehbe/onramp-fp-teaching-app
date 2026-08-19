@@ -2,6 +2,7 @@ import { Router } from "express";
 import { courseController } from "../controllers/course.controller";
 import { authenticate } from "../middleware/authenticate";
 import { courseAssistantController } from "../controllers/course-assistant.controller";
+import { instructorAssistantController } from "../controllers/instructor-assistant.controller";
 import { assistantRateLimiter } from "../middleware/rate-limiter";
 import { validate } from "../middleware/validate";
 import {
@@ -20,6 +21,14 @@ router.post(
   validate(courseAssistantParamsSchema, "params"),
   validate(courseAssistantBodySchema),
   courseAssistantController.ask,
+);
+router.post(
+  "/:courseId/instructor-assistant",
+  authenticate,
+  assistantRateLimiter,
+  validate(courseAssistantParamsSchema, "params"),
+  validate(courseAssistantBodySchema),
+  instructorAssistantController.ask,
 );
 router.get("/:id", authenticate, courseController.getCourse);
 router.put("/:id", authenticate, courseController.updateCourse);

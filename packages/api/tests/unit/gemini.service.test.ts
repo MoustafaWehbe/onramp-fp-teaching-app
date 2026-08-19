@@ -70,7 +70,10 @@ describe("GeminiService", () => {
   it("returns trimmed text and steps from a valid interaction", async () => {
     const mockSteps: Interactions.Step[] = [
       { type: "user_input", content: [{ type: "text", text: "Say hello" }] },
-      { type: "model_output", content: [{ type: "text", text: "Hello there" }] },
+      {
+        type: "model_output",
+        content: [{ type: "text", text: "Hello there" }],
+      },
     ];
     createInteractionMock.mockResolvedValue({
       output_text: "  Hello there  ",
@@ -237,6 +240,83 @@ describe("GeminiService", () => {
     expect((result.steps[0] as Interactions.ThoughtStep).signature).toBe(
       "provider-signature-xyz",
     );
+  });
+
+  it("uses stateless Interactions function calling through the existing client", async () => {
+    const functionCall: Interactions.FunctionCallStep = {
+      type: "function_call",
+      id: "call-1",
+      name: "get_course_overview",
+      arguments: {},
+    };
+    createInteractionMock.mockResolvedValue({
+      steps: [functionCall],
+    });
+    const tools: Interactions.Function[] = [
+      {
+        type: "function",
+        name: "get_course_overview",
+        description: "Read the authorized course overview.",
+        parameters: { type: "object", properties: {} },
+      },
+    ];
+
+    await expect(
+      new GeminiService().generateToolInteraction({
+        input: "Give me an overview",
+        systemInstruction: "Use read-only tools.",
+        tools,
+      }),
+    ).resolves.toEqual({
+      steps: [functionCall],
+      functionCalls: [functionCall],
+    });
+    expect(getLastRequest()).toMatchObject({
+      input: "Give me an overview",
+      store: false,
+      system_instruction: "Use read-only tools.",
+      tools,
+    });
+  });
+
+  it("replays the complete application-managed function transcript verbatim", async () => {
+    const transcript: Interactions.Step[] = [
+      {
+        type: "user_input",
+        content: [{ type: "text", text: "How many are pending?" }],
+      },
+      {
+        type: "function_call",
+        id: "call-1",
+        name: "get_pending_grading",
+        arguments: {},
+      },
+      {
+        type: "function_result",
+        call_id: "call-1",
+        name: "get_pending_grading",
+        result: [{ type: "text", text: '{"totalPending":2}' }],
+      },
+    ];
+    createInteractionMock.mockResolvedValue({
+      output_text: "  Two submissions are pending.  ",
+      steps: [
+        {
+          type: "model_output",
+          content: [{ type: "text", text: "Two submissions are pending." }],
+        },
+      ],
+    });
+
+    const result = await new GeminiService().generateToolInteraction({
+      input: transcript,
+      systemInstruction: "Use read-only tools.",
+      tools: [],
+    });
+
+    expect(getLastRequest()).toMatchObject({ input: transcript, store: false });
+    expect(result.text).toBe("Two submissions are pending.");
+    expect(result.functionCalls).toEqual([]);
   });
 
   it("normalizes provider failures without leaking their message", async () => {

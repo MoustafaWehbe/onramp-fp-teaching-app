@@ -133,6 +133,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/courses/{courseId}/instructor-assistant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask the read-only Instructor Assistant for one course
+         * @description Available only to the instructor who owns the requested course. The assistant can read course content and scoped operational statistics but cannot mutate data.
+         */
+        post: operations["askInstructorAssistant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/courses/{id}": {
         parameters: {
             query?: never;
@@ -470,6 +490,19 @@ export interface components {
             type: "message";
             answer: string;
             sources: components["schemas"]["CourseAssistantSource"][];
+        };
+        InstructorAssistantSource: {
+            /** @enum {string} */
+            type: "lesson" | "milestone";
+            /** Format: uuid */
+            id: string;
+            title: string;
+        };
+        InstructorAssistantMessage: {
+            /** @enum {string} */
+            type: "message";
+            answer: string;
+            sources: components["schemas"]["InstructorAssistantSource"][];
         };
         Module: {
             /** Format: uuid */
@@ -1046,6 +1079,97 @@ export interface operations {
                 };
             };
             /** @description Retrieval or generation is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    askInstructorAssistant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourseAssistantRequest"];
+            };
+        };
+        responses: {
+            /** @description A course-scoped read-only instructor answer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["InstructorAssistantMessage"];
+                    };
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Instructor role and course ownership required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Course not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too many assistant requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Tool selection or answer generation failed safely */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Course data, retrieval, or generation is unavailable */
             503: {
                 headers: {
                     [name: string]: unknown;

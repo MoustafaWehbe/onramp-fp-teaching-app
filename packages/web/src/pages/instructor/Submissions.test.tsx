@@ -1,6 +1,8 @@
 import { screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { clearAssistantConversations } from "../../components/assistant/conversation-store";
 import { apiClient } from "../../lib/api-client";
+import { ASSISTANT_REQUEST_TIMEOUT_MS } from "../../lib/assistant-api";
 import { renderWithProviders } from "../../test/test-utils";
 import { SubmissionsPage } from "./Submissions";
 
@@ -9,6 +11,7 @@ vi.mock("../../lib/api-client", () => ({
 }));
 
 const getMock = vi.mocked(apiClient.get);
+const postMock = vi.mocked(apiClient.post);
 
 const course = {
   id: "course-1",
@@ -87,6 +90,7 @@ function renderSubmissions() {
 describe("SubmissionsPage", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    clearAssistantConversations();
   });
 
   it("exposes course loading as a busy status", () => {
@@ -176,5 +180,41 @@ describe("SubmissionsPage", () => {
       "Modules unavailable",
     );
     expect(screen.getByRole("button", { name: /Retry/i })).toBeInTheDocument();
+  });
+
+  it("uses the selected trusted course for the Instructor Assistant", async () => {
+    mockHierarchy([pendingSubmission]);
+    postMock.mockResolvedValueOnce({
+      data: {
+        data: {
+          type: "message",
+          answer: "One submission is pending.",
+          sources: [],
+        },
+      },
+    } as never);
+    const { user } = renderSubmissions();
+
+    await screen.findByText(/Nour Student/);
+    await user.click(
+      screen.getByRole("button", { name: "Open Instructor Assistant" }),
+    );
+    await user.type(
+      screen.getByLabelText("Message Instructor Assistant"),
+      "What needs grading?",
+    );
+    await user.click(screen.getByRole("button", { name: "Send message" }));
+
+    expect(
+      await screen.findByText("One submission is pending."),
+    ).toBeInTheDocument();
+    expect(postMock).toHaveBeenCalledWith(
+      "/courses/course-1/instructor-assistant",
+      { message: "What needs grading?", history: [] },
+      {
+        signal: expect.any(AbortSignal),
+        timeout: ASSISTANT_REQUEST_TIMEOUT_MS,
+      },
+    );
   });
 });

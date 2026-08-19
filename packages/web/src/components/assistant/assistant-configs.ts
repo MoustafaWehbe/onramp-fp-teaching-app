@@ -37,24 +37,21 @@ export function courseAssistant(
 }
 
 export function instructorAssistant(
-  courseId?: string,
-  courseTitle?: string,
+  courseId: string,
+  courseTitle: string,
 ): AssistantConfig {
   return {
-    id: courseId ? `instructor:${courseId}` : "instructor:workspace",
+    id: `instructor:${courseId}`,
     name: "Instructor Assistant",
     badge: "INSTRUCTOR",
-    subtitle:
-      courseId && courseTitle
-        ? `Managing: ${courseTitle}`
-        : "Instructor Workspace",
+    subtitle: `Managing: ${courseTitle}`,
     description:
-      "Ask about grading, submissions, deadlines, and course activity.",
+      "Ask about course content, grading, submissions, and course activity.",
     icon: Briefcase,
     suggestedPrompts: [
       "How much grading do I have left?",
       "Who has not submitted?",
-      "What is due next?",
+      "What did I teach about authentication?",
       "Give me a course overview.",
     ],
   };
