@@ -549,6 +549,7 @@ components:
           type: string
           minLength: 1
           maxLength: 1500
+          pattern: '\S'
           example: How do I submit my milestone work?
 
     AssistantSource:
@@ -1639,6 +1640,12 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "503":
           description: AI service not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
           content:
             application/json:
               schema:
