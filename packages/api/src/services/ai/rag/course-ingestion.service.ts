@@ -99,7 +99,7 @@ function requireCompatibleProvider(provider: EmbeddingProvider): void {
   }
 }
 
-function modelRepository(): CourseIngestionRepository {
+export function createCourseIngestionRepository(): CourseIngestionRepository {
   return {
     async findLesson(lessonId) {
       const lesson = (await Lesson.findByPk(lessonId, {
@@ -142,7 +142,7 @@ function modelRepository(): CourseIngestionRepository {
 
     async listLessonChunks(lessonId) {
       const chunks = await KnowledgeChunk.findAll({
-        where: { lessonId },
+        where: { lessonId, resourceId: null, sourceType: "lesson" },
         order: [["chunkIndex", "ASC"]],
       });
       return chunks.map((chunk) => ({
@@ -175,7 +175,11 @@ function modelRepository(): CourseIngestionRepository {
         if (!lockedLesson) throw new Error("Lesson no longer exists");
 
         const deleted = await KnowledgeChunk.destroy({
-          where: { lessonId: source.lessonId },
+          where: {
+            lessonId: source.lessonId,
+            resourceId: null,
+            sourceType: "lesson",
+          },
           transaction,
         });
         if (chunks.length > 0) {
@@ -205,7 +209,9 @@ function modelRepository(): CourseIngestionRepository {
     },
 
     deleteLessonChunks: async (lessonId) =>
-      KnowledgeChunk.destroy({ where: { lessonId } }),
+      KnowledgeChunk.destroy({
+        where: { lessonId, resourceId: null, sourceType: "lesson" },
+      }),
   };
 }
 
@@ -219,7 +225,8 @@ export async function indexLesson(
   dependencies: CourseIngestionDependencies = {},
 ): Promise<LessonIndexSummary> {
   const provider = dependencies.provider ?? getEmbeddingProvider();
-  const repository = dependencies.repository ?? modelRepository();
+  const repository =
+    dependencies.repository ?? createCourseIngestionRepository();
   requireCompatibleProvider(provider);
 
   const source = await repository.findLesson(lessonId);
@@ -274,7 +281,8 @@ async function performCourseIndex(
   courseId: string,
   dependencies: CourseIngestionDependencies = {},
 ): Promise<CourseIndexSummary> {
-  const repository = dependencies.repository ?? modelRepository();
+  const repository =
+    dependencies.repository ?? createCourseIngestionRepository();
   const lessonIds = await repository.listCourseLessonIds(courseId);
   const summary: CourseIndexSummary = {
     courseId,

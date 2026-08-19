@@ -311,6 +311,48 @@ components:
         order:
           type: integer
 
+    LessonResource:
+      type: object
+      required:
+        [
+          id,
+          lessonId,
+          title,
+          originalFileName,
+          mimeType,
+          sizeBytes,
+          indexStatus,
+          createdAt,
+          updatedAt,
+        ]
+      properties:
+        id: { type: string, format: uuid }
+        lessonId: { type: string, format: uuid }
+        title: { type: string }
+        originalFileName: { type: string }
+        mimeType: { type: string, enum: [application/pdf] }
+        sizeBytes: { type: integer }
+        indexStatus: { type: string, enum: [pending, ready, failed] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    LessonSummary:
+      type: object
+      required: [type, lessonId, summary, sources]
+      properties:
+        type: { type: string, enum: [summary] }
+        lessonId: { type: string, format: uuid }
+        summary: { type: string }
+        sources:
+          type: array
+          items:
+            type: object
+            required: [type, id, title]
+            properties:
+              type: { type: string, enum: [lesson, resource] }
+              id: { type: string, format: uuid }
+              title: { type: string }
+
     Milestone:
       type: object
       properties:
@@ -609,7 +651,6 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AssistantSource"
-
 
 # ─── Paths ─────────────────────────────────────────────────────────────────────
 paths:
@@ -1754,3 +1795,362 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+
+  /modules/{moduleId}/lessons/{lessonId}/resources:
+    parameters:
+      - {
+          name: moduleId,
+          in: path,
+          required: true,
+          schema: { type: string, format: uuid },
+        }
+      - {
+          name: lessonId,
+          in: path,
+          required: true,
+          schema: { type: string, format: uuid },
+        }
+    get:
+      tags: [Lessons]
+      summary: List lesson PDF resources
+      operationId: listLessonResources
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: Resource metadata only
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    {
+                      type: array,
+                      items: { $ref: "#/components/schemas/LessonResource" },
+                    }
+        "401":
+          {
+            description: Unauthorized,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/ErrorResponse" } },
+              },
+          }
+        "403":
+          {
+            description: Forbidden,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/ErrorResponse" } },
+              },
+          }
+        "404":
+          {
+            description: Lesson not found,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/ErrorResponse" } },
+              },
+          }
+    post:
+      tags: [Lessons]
+      summary: Upload a lesson PDF resource (owning instructor only)
+      operationId: uploadLessonResource
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+                title: { type: string }
+      responses:
+        "201":
+          description: Uploaded resource metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  { data: { $ref: "#/components/schemas/LessonResource" } }
+        "401":
+          {
+            description: Unauthorized,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/ErrorResponse" } },
+              },
+          }
+        "403":
+          {
+            description: Forbidden,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/ErrorResponse" } },
+              },
+          }
+        "422":
+          {
+            description: Invalid PDF or resource limit reached,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/ErrorResponse" } },
+              },
+          }
+
+  /modules/{moduleId}/lessons/{lessonId}/resources/{resourceId}/download:
+    get:
+      tags: [Lessons]
+      summary: Open or download an authorized lesson PDF
+      operationId: downloadLessonResource
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - {
+            name: moduleId,
+            in: path,
+            required: true,
+            schema: { type: string, format: uuid },
+          }
+        - {
+            name: lessonId,
+            in: path,
+            required: true,
+            schema: { type: string, format: uuid },
+          }
+        - {
+            name: resourceId,
+            in: path,
+            required: true,
+            schema: { type: string, format: uuid },
+          }
+      responses:
+        "200":
+          {
+            description: PDF bytes,
+            content:
+              { application/pdf: { schema: { type: string, format: binary } } },
+          }
+        "401":
+          {
+            description: Unauthorized,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/ErrorResponse" } },
+              },
+          }
+        "403":
+          {
+            description: Forbidden,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/ErrorResponse" } },
+              },
+          }
+        "404":
+          {
+            description: Resource not found,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/ErrorResponse" } },
+              },
+          }
+
+  /modules/{moduleId}/lessons/{lessonId}/resources/{resourceId}:
+    delete:
+      tags: [Lessons]
+      summary: Delete a lesson resource (owning instructor only)
+      operationId: deleteLessonResource
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - {
+            name: moduleId,
+            in: path,
+            required: true,
+            schema: { type: string, format: uuid },
+          }
+        - {
+            name: lessonId,
+            in: path,
+            required: true,
+            schema: { type: string, format: uuid },
+          }
+        - {
+            name: resourceId,
+            in: path,
+            required: true,
+            schema: { type: string, format: uuid },
+          }
+      responses:
+        "200": { description: Resource deleted }
+        "401":
+          {
+            description: Unauthorized,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/ErrorResponse" } },
+              },
+          }
+        "403":
+          {
+            description: Forbidden,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/ErrorResponse" } },
+              },
+          }
+        "404":
+          {
+            description: Resource not found,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/ErrorResponse" } },
+              },
+          }
+
+  /modules/{moduleId}/lessons/{lessonId}/resources/{resourceId}/reindex:
+    post:
+      tags: [Lessons]
+      summary: Retry lesson resource AI indexing (owning instructor only)
+      operationId: reindexLessonResource
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - {
+            name: moduleId,
+            in: path,
+            required: true,
+            schema: { type: string, format: uuid },
+          }
+        - {
+            name: lessonId,
+            in: path,
+            required: true,
+            schema: { type: string, format: uuid },
+          }
+        - {
+            name: resourceId,
+            in: path,
+            required: true,
+            schema: { type: string, format: uuid },
+          }
+      responses:
+        "200":
+          {
+            description: Reindexed resource,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        type: object,
+                        properties:
+                          {
+                            data:
+                              { $ref: "#/components/schemas/LessonResource" },
+                          },
+                      },
+                  },
+              },
+          }
+        "503":
+          {
+            description: AI indexing unavailable,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/ErrorResponse" } },
+              },
+          }
+
+  /modules/{moduleId}/lessons/{lessonId}/summary:
+    post:
+      tags: [Lessons]
+      summary: Generate a lesson study summary from lesson text and all lesson PDFs
+      operationId: generateLessonSummary
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - {
+            name: moduleId,
+            in: path,
+            required: true,
+            schema: { type: string, format: uuid },
+          }
+        - {
+            name: lessonId,
+            in: path,
+            required: true,
+            schema: { type: string, format: uuid },
+          }
+      responses:
+        "200":
+          {
+            description: Generated Markdown summary,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        type: object,
+                        properties:
+                          {
+                            data:
+                              { $ref: "#/components/schemas/LessonSummary" },
+                          },
+                      },
+                  },
+              },
+          }
+        "401":
+          {
+            description: Unauthorized,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/ErrorResponse" } },
+              },
+          }
+        "403":
+          {
+            description: Forbidden,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/ErrorResponse" } },
+              },
+          }
+        "422":
+          {
+            description: No material or supported input bound exceeded,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/ErrorResponse" } },
+              },
+          }
+        "502":
+          {
+            description: AI provider failure,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/ErrorResponse" } },
+              },
+          }

@@ -4,9 +4,11 @@ import type {
   PersistedLessonChunk,
 } from "../../src/services/ai/rag/course-ingestion.service";
 import {
+  createCourseIngestionRepository,
   indexCourse,
   indexLesson,
 } from "../../src/services/ai/rag/course-ingestion.service";
+import { KnowledgeChunk } from "@starter-kit/shared/db/models/KnowledgeChunk";
 import type { DocumentChunk } from "../../src/services/ai/rag/chunk-text";
 import type { EmbeddingProvider } from "../../src/services/ai/rag/embedding-provider";
 
@@ -106,6 +108,26 @@ function deferred<T>() {
 }
 
 describe("course lesson ingestion", () => {
+  it("scopes model reads and deletes to lesson-source chunks only", async () => {
+    const findAll = jest.spyOn(KnowledgeChunk, "findAll").mockResolvedValue([]);
+    const destroy = jest.spyOn(KnowledgeChunk, "destroy").mockResolvedValue(2);
+    const repository = createCourseIngestionRepository();
+
+    await repository.listLessonChunks("lesson-1");
+    await repository.deleteLessonChunks("lesson-1");
+
+    const expectedWhere = {
+      lessonId: "lesson-1",
+      resourceId: null,
+      sourceType: "lesson",
+    };
+    expect(findAll).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expectedWhere }),
+    );
+    expect(destroy).toHaveBeenCalledWith({ where: expectedWhere });
+    findAll.mockRestore();
+    destroy.mockRestore();
+  });
   it("turns lesson content into embedded chunks with course metadata", async () => {
     const fixture = repositoryFixture(
       source(

@@ -10,6 +10,8 @@ import {
 import ReactMarkdown, { type Components } from "react-markdown";
 import { Link, useParams } from "react-router-dom";
 import { CourseContextAssistant } from "../../components/assistant";
+import { LessonResourcesCard } from "../../components/lesson-resources/LessonResourcesCard";
+import { LessonSummaryCard } from "../../components/lesson-resources/LessonSummaryCard";
 import { Button, buttonVariants } from "../../components/ui/button";
 import {
   Card,
@@ -21,6 +23,7 @@ import { useCourse } from "../../hooks/useCourses";
 import { useLesson, useModule } from "../../hooks/useModules";
 import { getApiErrorMessage } from "../../lib/courses-api";
 import { cn } from "../../lib/utils";
+import { useAuth } from "../../hooks/useAuth";
 
 function safeHttpUrl(value: string | null | undefined): string | null {
   if (!value) return null;
@@ -156,6 +159,7 @@ function LessonLoading() {
 }
 
 export function LessonDetails() {
+  const { user } = useAuth();
   const { courseId, moduleId, lessonId } = useParams<{
     courseId: string;
     moduleId: string;
@@ -350,6 +354,16 @@ export function LessonDetails() {
           </CardContent>
         </Card>
       )}
+
+      <LessonResourcesCard
+        moduleId={module.id}
+        lessonId={lesson.id}
+        canManage={
+          user?.role === "instructor" && course.instructorId === user.id
+        }
+      />
+
+      <LessonSummaryCard moduleId={module.id} lessonId={lesson.id} />
 
       <CourseContextAssistant courseId={course.id} courseTitle={course.title} />
     </div>
