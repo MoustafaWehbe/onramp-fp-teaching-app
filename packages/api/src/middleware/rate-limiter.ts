@@ -23,8 +23,8 @@ export const assistantRateLimiter = rateLimit({
   max: 20, // Gemini calls are costly — tighter than the general default
   standardHeaders: "draft-7",
   legacyHeaders: false,
+  keyGenerator: (req) => req.user?.userId ?? req.ip ?? "unknown",
   message: {
     error: "Too many assistant requests, please try again later.",
   },
 });
-
