@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuth } from "../../hooks/useAuth";
 import { AppLayout, hasSpecializedAssistant } from "../../layouts/AppLayout";
 import { apiClient } from "../../lib/api-client";
+import { ASSISTANT_REQUEST_TIMEOUT_MS } from "../../lib/assistant-api";
 import { AppRoutes } from "../../routes";
 import { renderWithProviders } from "../../test/test-utils";
 import { clearAssistantConversations } from "./conversation-store";
@@ -19,6 +20,7 @@ vi.mock("../../lib/api-client", () => ({
 
 const useAuthMock = vi.mocked(useAuth);
 const getMock = vi.mocked(apiClient.get);
+const postMock = vi.mocked(apiClient.post);
 
 function setUser(role: "student" | "instructor") {
   useAuthMock.mockReturnValue({
@@ -121,6 +123,90 @@ describe("assistant placement", () => {
       "Managing: Full Stack Bootcamp",
     );
     expect(screen.queryByText("COURSE")).not.toBeInTheDocument();
+  });
+
+  it("uses the real Course Assistant endpoint and renders lesson sources", async () => {
+    setUser("student");
+    postMock.mockResolvedValueOnce({
+      data: {
+        data: {
+          type: "message",
+          answer: "Invalidation marks matching queries as stale [1].",
+          sources: [
+            {
+              type: "lesson",
+              id: "lesson-1",
+              title: "React Query Fundamentals",
+            },
+          ],
+        },
+      },
+    } as never);
+    const { user } = renderInLayout(
+      "/courses/course-1",
+      <CourseContextAssistant
+        courseId="course-1"
+        courseTitle="Full Stack Bootcamp"
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Open Course Assistant" }),
+    );
+    await user.type(
+      screen.getByLabelText("Message Course Assistant"),
+      "What is invalidation?",
+    );
+    await user.click(screen.getByRole("button", { name: "Send message" }));
+
+    expect(
+      await screen.findByText(
+        "Invalidation marks matching queries as stale [1].",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("React Query Fundamentals")).toBeInTheDocument();
+    expect(postMock).toHaveBeenCalledWith(
+      "/courses/course-1/assistant",
+      {
+        message: "What is invalidation?",
+        history: [],
+      },
+      {
+        signal: expect.any(AbortSignal),
+        timeout: ASSISTANT_REQUEST_TIMEOUT_MS,
+      },
+    );
+  });
+
+  it("keeps API failures retryable through the existing panel", async () => {
+    setUser("student");
+    postMock
+      .mockRejectedValueOnce(new Error("Temporary failure"))
+      .mockResolvedValueOnce({
+        data: {
+          data: {
+            type: "message",
+            answer: "Recovered answer [1].",
+            sources: [],
+          },
+        },
+      } as never);
+    const { user } = renderInLayout(
+      "/courses/course-1",
+      <CourseContextAssistant courseId="course-1" courseTitle="Course" />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Open Course Assistant" }),
+    );
+    await user.type(screen.getByLabelText("Message Course Assistant"), "Help");
+    await user.click(screen.getByRole("button", { name: "Send message" }));
+    await user.click(await screen.findByRole("button", { name: "Retry" }));
+
+    expect(
+      await screen.findByText("Recovered answer [1]."),
+    ).toBeInTheDocument();
+    expect(postMock).toHaveBeenCalledTimes(2);
   });
 
   it("shows one Instructor Workspace assistant on the dashboard", async () => {

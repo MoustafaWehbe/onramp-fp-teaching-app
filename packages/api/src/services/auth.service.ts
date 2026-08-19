@@ -4,7 +4,7 @@ import {
   verifyPassword,
   generateTokenPair,
   verifyRefreshToken,
-} from "@starter-kit/shared";
+} from "@starter-kit/shared/auth";
 import { User, Session, RefreshToken } from "../models";
 import { createError } from "../middleware/error-handler";
 

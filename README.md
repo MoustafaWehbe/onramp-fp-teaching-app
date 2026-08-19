@@ -4,14 +4,14 @@ A full-stack TypeScript monorepo with everything pre-configured so you can focus
 
 ## Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 18, Vite, Tailwind CSS, shadcn/ui |
-| Backend | Express, Sequelize, Zod |
-| Background Jobs | BullMQ, Redis |
-| Database | PostgreSQL |
-| Monorepo | Turborepo |
-| Language | TypeScript (everywhere) |
+| Layer           | Technology                              |
+| --------------- | --------------------------------------- |
+| Frontend        | React 18, Vite, Tailwind CSS, shadcn/ui |
+| Backend         | Express, Sequelize, Zod                 |
+| Background Jobs | BullMQ, Redis                           |
+| Database        | PostgreSQL 16 + pgvector                |
+| Monorepo        | Turborepo                               |
+| Language        | TypeScript (everywhere)                 |
 
 ## Project Structure
 
@@ -77,12 +77,12 @@ cd packages/workers && npm run dev # Workers
 
 ## Available Scripts (root)
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start all packages in watch mode |
-| `npm run build` | Build all packages |
-| `npm run test` | Run all test suites |
-| `npm run lint` | Lint all packages |
+| Command         | Description                      |
+| --------------- | -------------------------------- |
+| `npm run dev`   | Start all packages in watch mode |
+| `npm run build` | Build all packages               |
+| `npm run test`  | Run all test suites              |
+| `npm run lint`  | Lint all packages                |
 
 ## Environment Variables
 
@@ -99,5 +99,13 @@ cd packages/web && npm test  # Web tests (Vitest)
 ## Docker
 
 The `docker-compose.yml` starts:
-- **PostgreSQL 16** on port `5432`
+
+- **PostgreSQL 16 with pgvector** on port `5432`
 - **Redis 7** on port `6379`
+
+The Course Assistant migration enables the `vector` extension. If you use a
+PostgreSQL server outside Docker, install pgvector for PostgreSQL 16 before
+running `npm run db:migrate -w @starter-kit/api`. The first course question
+downloads the pinned multilingual E5 model into `MODEL_CACHE_DIR`; set
+`EMBEDDING_ALLOW_REMOTE_MODELS=false` only after that model is available in the
+configured cache.
