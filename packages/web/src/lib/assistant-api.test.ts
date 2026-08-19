@@ -7,6 +7,7 @@ import {
   MAX_ASSISTANT_HISTORY_MESSAGES,
   sendCourseAssistantMessage,
   sendInstructorAssistantMessage,
+  sendGeneralAssistantMessage,
 } from "./assistant-api";
 
 vi.mock("./api-client", () => ({
@@ -14,6 +15,69 @@ vi.mock("./api-client", () => ({
 }));
 
 const postMock = vi.mocked(apiClient.post);
+
+describe("sendGeneralAssistantMessage", () => {
+  beforeEach(() => {
+    postMock.mockReset();
+  });
+
+  it("posts the message to /assistant/general", async () => {
+    postMock.mockResolvedValue({
+      data: {
+        data: {
+          type: "message",
+          answer: "You can submit via GitHub.",
+          sources: [],
+        },
+      },
+    });
+
+    await sendGeneralAssistantMessage("How do I submit?");
+
+    expect(postMock).toHaveBeenCalledWith(
+      "/assistant/general",
+      { message: "How do I submit?" },
+      { signal: undefined, timeout: ASSISTANT_REQUEST_TIMEOUT_MS },
+    );
+  });
+
+  it("returns the unwrapped data payload", async () => {
+    postMock.mockResolvedValue({
+      data: {
+        data: {
+          type: "message",
+          answer: "Answer text",
+          sources: [{ type: "policy", id: "grades", title: "Grades" }],
+        },
+      },
+    });
+
+    const result = await sendGeneralAssistantMessage("Where are my grades?");
+
+    expect(result).toEqual({
+      type: "message",
+      answer: "Answer text",
+      sources: [{ type: "policy", id: "grades", title: "Grades" }],
+    });
+  });
+
+  it("throws when the server returns no data payload", async () => {
+    postMock.mockResolvedValue({ data: {} });
+
+    await expect(sendGeneralAssistantMessage("test")).rejects.toThrow(
+      "The server returned an invalid assistant response.",
+    );
+  });
+
+  it("propagates network/axios errors to the caller", async () => {
+    postMock.mockRejectedValue(new Error("Network Error"));
+
+    await expect(sendGeneralAssistantMessage("test")).rejects.toThrow(
+      "Network Error",
+    );
+  });
+});
+
 const response = {
   data: {
     data: {
@@ -170,6 +234,7 @@ describe("Instructor Assistant API", () => {
     expect(postMock).toHaveBeenCalledWith(
       "/courses/course%2Fid/instructor-assistant",
       { message: "What needs grading?", history: [] },
+      { signal: undefined, timeout: ASSISTANT_REQUEST_TIMEOUT_MS },
     );
   });
 

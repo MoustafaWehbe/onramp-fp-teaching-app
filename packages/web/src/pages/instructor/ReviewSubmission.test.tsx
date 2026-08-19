@@ -3,6 +3,7 @@ import { Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { clearAssistantConversations } from "../../components/assistant/conversation-store";
 import { apiClient } from "../../lib/api-client";
+import { ASSISTANT_REQUEST_TIMEOUT_MS } from "../../lib/assistant-api";
 import { renderWithProviders } from "../../test/test-utils";
 import { ReviewSubmissionPage } from "./ReviewSubmission";
 
@@ -278,6 +279,10 @@ describe("ReviewSubmissionPage", () => {
     expect(postMock).toHaveBeenCalledWith(
       "/courses/course-1/instructor-assistant",
       { message: "What needs grading?", history: [] },
+      {
+        signal: expect.any(AbortSignal),
+        timeout: ASSISTANT_REQUEST_TIMEOUT_MS,
+      },
     );
   });
 });

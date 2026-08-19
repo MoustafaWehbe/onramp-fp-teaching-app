@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import {
   sendCourseAssistantMessage,
+  sendGeneralAssistantMessage,
   sendInstructorAssistantMessage,
 } from "../../lib/assistant-api";
 import {
@@ -10,15 +11,17 @@ import {
   instructorAssistant,
 } from "./assistant-configs";
 import { AssistantLauncher } from "./AssistantLauncher";
-import { mockGeneralAssistant } from "./mock-send";
 import type { AssistantMessage } from "./types";
 
 export function GeneralAssistantLauncher() {
+  const sendGeneralMessage = useCallback(
+    (message: string, _history: AssistantMessage[], signal?: AbortSignal) =>
+      sendGeneralAssistantMessage(message, signal),
+    [],
+  );
+
   return (
-    <AssistantLauncher
-      config={generalAssistant}
-      onSend={mockGeneralAssistant}
-    />
+    <AssistantLauncher config={generalAssistant} onSend={sendGeneralMessage} />
   );
 }
 
@@ -36,8 +39,8 @@ export function CourseContextAssistant({
     [courseId],
   );
   const sendInstructorMessage = useCallback(
-    (message: string, history: AssistantMessage[]) =>
-      sendInstructorAssistantMessage(courseId, message, history),
+    (message: string, history: AssistantMessage[], signal?: AbortSignal) =>
+      sendInstructorAssistantMessage(courseId, message, history, signal),
     [courseId],
   );
   if (!user) return null;
@@ -63,11 +66,11 @@ export function InstructorContextAssistant({
   courseTitle?: string;
 }) {
   const sendInstructorMessage = useCallback(
-    (message: string, history: AssistantMessage[]) => {
+    (message: string, history: AssistantMessage[], signal?: AbortSignal) => {
       if (!courseId) {
         return Promise.reject(new Error("A course is required."));
       }
-      return sendInstructorAssistantMessage(courseId, message, history);
+      return sendInstructorAssistantMessage(courseId, message, history, signal);
     },
     [courseId],
   );

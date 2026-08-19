@@ -8,6 +8,7 @@ import { submissionRouter } from "./submission.routes";
 import { gradingRouter } from "./grading.routes";
 import { moduleRouter } from "./module.routes";
 import { lessonRouter } from "./lesson.routes";
+import { assistantRouter } from "./assistant.routes";
 
 const router = Router();
 
@@ -20,5 +21,6 @@ router.use("/modules/:moduleId/milestones", milestoneRouter);
 router.use("/milestones/:milestoneId/lessons", milestoneLessonRouter);
 router.use("/milestones/:milestoneId/submissions", submissionRouter);
 router.use("/submissions", gradingRouter);
+router.use("/assistant", assistantRouter);
 
 export { router };

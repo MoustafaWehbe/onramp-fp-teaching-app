@@ -166,6 +166,10 @@ describe("assistant placement", () => {
     expect(postMock).toHaveBeenCalledWith(
       "/courses/course-1/instructor-assistant",
       { message: "What needs grading?", history: [] },
+      {
+        signal: expect.any(AbortSignal),
+        timeout: ASSISTANT_REQUEST_TIMEOUT_MS,
+      },
     );
   });
 

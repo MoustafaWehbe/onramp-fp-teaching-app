@@ -103,6 +103,37 @@ describe("Instructor Assistant tool boundary", () => {
     );
   });
 
+  it.each([undefined, null, {}])(
+    "accepts %p arguments for a no-argument tool",
+    (args) => {
+      expect(
+        validateInstructorToolInvocation("get_course_overview", args),
+      ).toEqual({ name: "get_course_overview", arguments: {} });
+    },
+  );
+
+  it("rejects search_course_content when its required query is absent", () => {
+    expect(() =>
+      validateInstructorToolInvocation("search_course_content", undefined),
+    ).toThrow(
+      expect.objectContaining({
+        code: InstructorToolErrorCode.INVALID_ARGUMENTS,
+      }),
+    );
+  });
+
+  it("rejects malformed supplied arguments after normalizing only nullish values", () => {
+    expect(() =>
+      validateInstructorToolInvocation("get_pending_grading", {
+        unexpected: true,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: InstructorToolErrorCode.INVALID_ARGUMENTS,
+      }),
+    );
+  });
+
   it("reuses course indexing and semantic retrieval with the server course", async () => {
     const index = jest.fn(async () => undefined);
     const search = jest.fn(async () => [

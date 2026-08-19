@@ -1,11 +1,17 @@
 import { apiClient } from "./api-client";
-import type { operations } from "./api-types";
+import type { components, operations } from "./api-types";
 import { getApiErrorMessage } from "./courses-api";
 import type {
   AssistantMessage,
   AssistantResponse,
   AssistantSource,
 } from "../components/assistant/types";
+
+type AssistantGeneralResponse =
+  operations["askGeneralAssistant"]["responses"][200]["content"]["application/json"];
+
+export type AssistantApiSource = components["schemas"]["AssistantSource"];
+export type AssistantApiResponse = components["schemas"]["AssistantResponse"];
 
 type CourseAssistantRequest =
   operations["askCourseAssistant"]["requestBody"]["content"]["application/json"];
@@ -30,7 +36,9 @@ function requireSource(
 ): AssistantSource {
   if (
     !isRecord(value) ||
-    (value.type !== "lesson" && value.type !== "milestone") ||
+    (value.type !== "policy" &&
+      value.type !== "lesson" &&
+      value.type !== "milestone") ||
     !allowedTypes.includes(value.type) ||
     typeof value.title !== "string" ||
     value.title.trim() === "" ||
@@ -76,6 +84,19 @@ function boundedHistory(history: readonly AssistantMessage[]) {
   });
 }
 
+export async function sendGeneralAssistantMessage(
+  message: string,
+  signal?: AbortSignal,
+): Promise<AssistantResponse> {
+  const { data } = await apiClient.post<AssistantGeneralResponse>(
+    "/assistant/general",
+    { message },
+    { signal, timeout: ASSISTANT_REQUEST_TIMEOUT_MS },
+  );
+
+  return requireAssistantResponse(data.data, ["policy"]);
+}
+
 export async function sendCourseAssistantMessage(
   courseId: string,
   message: string,
@@ -110,6 +131,7 @@ export async function sendInstructorAssistantMessage(
   courseId: string,
   message: string,
   history: readonly AssistantMessage[],
+  signal?: AbortSignal,
 ): Promise<AssistantResponse> {
   const body: InstructorAssistantRequest = {
     message,
@@ -121,6 +143,7 @@ export async function sendInstructorAssistantMessage(
     ({ data: response } = await apiClient.post<InstructorAssistantApiResponse>(
       `/courses/${encodeURIComponent(courseId)}/instructor-assistant`,
       body,
+      { signal, timeout: ASSISTANT_REQUEST_TIMEOUT_MS },
     ));
   } catch (error) {
     throw new Error(

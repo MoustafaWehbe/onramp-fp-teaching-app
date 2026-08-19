@@ -125,7 +125,7 @@ export function validateInstructorToolInvocation(
   }
 
   const toolName = name as InstructorToolName;
-  const parsed = argumentSchemas[toolName].safeParse(rawArguments);
+  const parsed = argumentSchemas[toolName].safeParse(rawArguments ?? {});
   if (!parsed.success) throw invalidArguments(parsed.error);
 
   return {
