@@ -10,6 +10,7 @@ import { Submission } from "./Submission";
 import { SubmissionLink } from "./SubmissionLink";
 import { Module } from "./Module";
 import { Lesson } from "./Lesson";
+import { KnowledgeChunk } from "./KnowledgeChunk";
 
 export {
   User,
@@ -23,6 +24,7 @@ export {
   SubmissionLink,
   Module,
   Lesson,
+  KnowledgeChunk,
 };
 
 export function initModels(sequelize: Sequelize): void {
@@ -37,6 +39,7 @@ export function initModels(sequelize: Sequelize): void {
   SubmissionLink.initModel(sequelize);
   Module.initModel(sequelize);
   Lesson.initModel(sequelize);
+  KnowledgeChunk.initModel(sequelize);
 
   User.hasMany(Session, { foreignKey: "userId", as: "sessions" });
   Session.belongsTo(User, { foreignKey: "userId", as: "user" });
@@ -61,6 +64,31 @@ export function initModels(sequelize: Sequelize): void {
 
   Module.hasMany(Lesson, { foreignKey: "moduleId", as: "lessons" });
   Lesson.belongsTo(Module, { foreignKey: "moduleId", as: "module" });
+
+  Course.hasMany(KnowledgeChunk, {
+    foreignKey: "courseId",
+    as: "knowledgeChunks",
+  });
+  KnowledgeChunk.belongsTo(Course, {
+    foreignKey: "courseId",
+    as: "course",
+  });
+  Module.hasMany(KnowledgeChunk, {
+    foreignKey: "moduleId",
+    as: "knowledgeChunks",
+  });
+  KnowledgeChunk.belongsTo(Module, {
+    foreignKey: "moduleId",
+    as: "module",
+  });
+  Lesson.hasMany(KnowledgeChunk, {
+    foreignKey: "lessonId",
+    as: "knowledgeChunks",
+  });
+  KnowledgeChunk.belongsTo(Lesson, {
+    foreignKey: "lessonId",
+    as: "lesson",
+  });
 
   Milestone.belongsTo(Module, { foreignKey: "moduleId", as: "module" });
   Module.hasMany(Milestone, { foreignKey: "moduleId", as: "milestones" });

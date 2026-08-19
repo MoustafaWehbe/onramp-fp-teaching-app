@@ -113,6 +113,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/courses/{courseId}/assistant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask the grounded Course Assistant
+         * @description Retrieves only authorized material from the requested course. Students must be enrolled; instructors must own the course.
+         */
+        post: operations["askCourseAssistant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/courses/{id}": {
         parameters: {
             query?: never;
@@ -428,6 +448,29 @@ export interface components {
             /** @example false */
             isPublished?: boolean;
         };
+        CourseAssistantHistoryMessage: {
+            /** @enum {string} */
+            role: "user" | "assistant";
+            content: string;
+        };
+        CourseAssistantRequest: {
+            /** @example What is query invalidation? */
+            message: string;
+            history?: components["schemas"]["CourseAssistantHistoryMessage"][];
+        };
+        CourseAssistantSource: {
+            /** @enum {string} */
+            type: "lesson";
+            /** Format: uuid */
+            id?: string;
+            title: string;
+        };
+        CourseAssistantMessage: {
+            /** @enum {string} */
+            type: "message";
+            answer: string;
+            sources: components["schemas"]["CourseAssistantSource"][];
+        };
         Module: {
             /** Format: uuid */
             id: string;
@@ -625,12 +668,12 @@ export interface components {
         };
         ValidationErrorResponse: {
             /** @example Validation failed */
-            error?: string;
-            details?: {
+            error: string;
+            errors: {
                 /** @example email */
-                field?: string;
+                field: string;
                 /** @example Invalid email address */
-                message?: string;
+                message: string;
             }[];
         };
         AssistantMessageBody: {
@@ -913,6 +956,97 @@ export interface operations {
             };
             /** @description Forbidden - instructor only */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    askCourseAssistant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourseAssistantRequest"];
+            };
+        };
+        responses: {
+            /** @description A grounded answer or an insufficient-evidence message */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["CourseAssistantMessage"];
+                    };
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Course enrollment or ownership required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Course not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                };
+            };
+            /** @description Too many assistant requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description The generation provider could not return a grounded answer */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Retrieval or generation is unavailable */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -142,6 +142,64 @@ components:
           type: boolean
           example: false
 
+    CourseAssistantHistoryMessage:
+      type: object
+      additionalProperties: false
+      required: [role, content]
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+          minLength: 1
+          maxLength: 1500
+
+    CourseAssistantRequest:
+      type: object
+      additionalProperties: false
+      required: [message]
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 1500
+          example: What is query invalidation?
+        history:
+          type: array
+          maxItems: 8
+          items:
+            $ref: "#/components/schemas/CourseAssistantHistoryMessage"
+
+    CourseAssistantSource:
+      type: object
+      additionalProperties: false
+      required: [type, title]
+      properties:
+        type:
+          type: string
+          enum: [lesson]
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+
+    CourseAssistantMessage:
+      type: object
+      additionalProperties: false
+      required: [type, answer, sources]
+      properties:
+        type:
+          type: string
+          enum: [message]
+        answer:
+          type: string
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/CourseAssistantSource"
+
     Module:
       type: object
       required: [id, courseId, title, order]
@@ -466,14 +524,16 @@ components:
 
     ValidationErrorResponse:
       type: object
+      required: [error, errors]
       properties:
         error:
           type: string
           example: Validation failed
-        details:
+        errors:
           type: array
           items:
             type: object
+            required: [field, message]
             properties:
               field:
                 type: string
@@ -725,6 +785,81 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
           description: Forbidden - instructor only
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /courses/{courseId}/assistant:
+    post:
+      tags: [Courses]
+      summary: Ask the grounded Course Assistant
+      description: Retrieves only authorized material from the requested course. Students must be enrolled; instructors must own the course.
+      operationId: askCourseAssistant
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CourseAssistantRequest"
+      responses:
+        "200":
+          description: A grounded answer or an insufficient-evidence message
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/CourseAssistantMessage"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Course enrollment or ownership required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Course not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+        "429":
+          description: Too many assistant requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: The generation provider could not return a grounded answer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Retrieval or generation is unavailable
           content:
             application/json:
               schema:
