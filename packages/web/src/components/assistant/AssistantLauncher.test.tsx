@@ -1,10 +1,20 @@
-import { act, fireEvent, screen, within } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders } from "../../test/test-utils";
 import { courseAssistant, generalAssistant } from "./assistant-configs";
 import { AssistantLauncher } from "./AssistantLauncher";
 import { clearAssistantConversations } from "./conversation-store";
-import type { AssistantResponse, AssistantSend } from "./types";
+import type {
+  AssistantMessage,
+  AssistantResponse,
+  AssistantSend,
+} from "./types";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -111,7 +121,11 @@ describe("AssistantLauncher", () => {
       screen.getByRole("button", { name: "How do submissions work?" }),
     );
 
-    expect(onSend).toHaveBeenCalledWith("How do submissions work?", []);
+    expect(onSend).toHaveBeenCalledWith(
+      "How do submissions work?",
+      [],
+      expect.any(AbortSignal),
+    );
     expect(screen.getByLabelText("User message")).toHaveTextContent(
       "How do submissions work?",
     );
@@ -206,7 +220,11 @@ describe("AssistantLauncher", () => {
     expect(onSend).not.toHaveBeenCalled();
     expect(fireEvent.keyDown(input, { key: "Enter" })).toBe(false);
 
-    expect(onSend).toHaveBeenCalledWith("First line", []);
+    expect(onSend).toHaveBeenCalledWith(
+      "First line",
+      [],
+      expect.any(AbortSignal),
+    );
     expect(await screen.findByText(response.answer)).toBeInTheDocument();
   });
 
@@ -266,29 +284,44 @@ describe("AssistantLauncher", () => {
     expect(screen.getByRole("dialog")).toHaveTextContent(response.answer);
   });
 
-  it("persists a reply that completes while the panel is minimized", async () => {
-    const request = deferred<AssistantResponse>();
-    const { user } = renderLauncher(() => request.promise);
+  it("aborts an in-flight request when the panel unmounts", async () => {
+    let requestSignal: AbortSignal | undefined;
+    const onSend = vi.fn(
+      (
+        _message: string,
+        _history: AssistantMessage[],
+        signal?: AbortSignal,
+      ) => {
+        requestSignal = signal;
+        return new Promise<AssistantResponse>((_resolve, reject) => {
+          signal?.addEventListener(
+            "abort",
+            () => reject(new DOMException("Aborted", "AbortError")),
+            { once: true },
+          );
+        });
+      },
+    );
+    const { user } = renderLauncher(onSend);
     await openLauncher(user);
     await user.type(
       screen.getByLabelText("Message MentorLane Assistant"),
-      "Finish this later",
+      "Cancel this request",
     );
     await user.click(screen.getByRole("button", { name: "Send message" }));
+
+    expect(requestSignal?.aborted).toBe(false);
     await user.click(
       screen.getByRole("button", { name: "Minimize MentorLane Assistant" }),
     );
 
-    await act(async () => {
-      request.resolve(response);
-      await request.promise;
-    });
-    await user.click(
-      screen.getByRole("button", { name: "Open MentorLane Assistant" }),
+    await waitFor(() => expect(requestSignal?.aborted).toBe(true));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(onSend).toHaveBeenCalledWith(
+      "Cancel this request",
+      [],
+      requestSignal,
     );
-
-    expect(screen.getByRole("dialog")).toHaveTextContent("Finish this later");
-    expect(screen.getByRole("dialog")).toHaveTextContent(response.answer);
   });
 
   it("keeps different course conversations separated", async () => {

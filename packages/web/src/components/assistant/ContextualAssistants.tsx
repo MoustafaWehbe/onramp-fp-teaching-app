@@ -1,15 +1,14 @@
+import { useCallback } from "react";
 import { useAuth } from "../../hooks/useAuth";
+import { sendCourseAssistantMessage } from "../../lib/assistant-api";
 import {
   courseAssistant,
   generalAssistant,
   instructorAssistant,
 } from "./assistant-configs";
 import { AssistantLauncher } from "./AssistantLauncher";
-import {
-  mockCourseAssistant,
-  mockGeneralAssistant,
-  mockInstructorAssistant,
-} from "./mock-send";
+import { mockGeneralAssistant, mockInstructorAssistant } from "./mock-send";
+import type { AssistantMessage } from "./types";
 
 export function GeneralAssistantLauncher() {
   return (
@@ -28,6 +27,11 @@ export function CourseContextAssistant({
   courseTitle: string;
 }) {
   const { user } = useAuth();
+  const sendCourseMessage = useCallback(
+    (message: string, history: AssistantMessage[], signal?: AbortSignal) =>
+      sendCourseAssistantMessage(courseId, message, history, signal),
+    [courseId],
+  );
   if (!user) return null;
 
   const isInstructor = user.role === "instructor";
@@ -38,7 +42,7 @@ export function CourseContextAssistant({
   return (
     <AssistantLauncher
       config={config}
-      onSend={isInstructor ? mockInstructorAssistant : mockCourseAssistant}
+      onSend={isInstructor ? mockInstructorAssistant : sendCourseMessage}
     />
   );
 }
