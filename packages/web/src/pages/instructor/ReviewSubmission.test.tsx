@@ -1,6 +1,7 @@
 import { act, screen } from "@testing-library/react";
 import { Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { clearAssistantConversations } from "../../components/assistant/conversation-store";
 import { apiClient } from "../../lib/api-client";
 import { renderWithProviders } from "../../test/test-utils";
 import { ReviewSubmissionPage } from "./ReviewSubmission";
@@ -89,6 +90,7 @@ function renderReview(
 describe("ReviewSubmissionPage", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    clearAssistantConversations();
     mockReviewHierarchy();
   });
 
@@ -244,5 +246,38 @@ describe("ReviewSubmissionPage", () => {
     expect(
       screen.getByRole("status", { name: "Loading submission review" }),
     ).toHaveAttribute("aria-busy", "true");
+  });
+
+  it("uses the course resolved by loaded review data for the Instructor Assistant", async () => {
+    postMock.mockResolvedValueOnce({
+      data: {
+        data: {
+          type: "message",
+          answer: "This milestone has one pending submission.",
+          sources: [
+            { type: "milestone", id: milestone.id, title: milestone.title },
+          ],
+        },
+      },
+    } as never);
+    const { user } = renderReview();
+
+    await screen.findByText(/Nour Student/);
+    await user.click(
+      screen.getByRole("button", { name: "Open Instructor Assistant" }),
+    );
+    await user.type(
+      screen.getByLabelText("Message Instructor Assistant"),
+      "What needs grading?",
+    );
+    await user.click(screen.getByRole("button", { name: "Send message" }));
+
+    expect(
+      await screen.findByText("This milestone has one pending submission."),
+    ).toBeInTheDocument();
+    expect(postMock).toHaveBeenCalledWith(
+      "/courses/course-1/instructor-assistant",
+      { message: "What needs grading?", history: [] },
+    );
   });
 });

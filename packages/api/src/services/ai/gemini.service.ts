@@ -4,6 +4,8 @@ import type {
   AIMessage,
   GenerateTextOptions,
   GenerateTextResult,
+  GenerateToolInteractionOptions,
+  GenerateToolInteractionResult,
 } from "./ai.types";
 
 export const DEFAULT_GEMINI_MODEL = "gemini-3.6-flash";
@@ -63,6 +65,26 @@ export class GeminiService {
     return this.client;
   }
 
+  private async createInteraction(
+    request: Interactions.CreateModelInteractionParamsNonStreaming,
+  ): Promise<{
+    output_text?: string;
+    steps?: Interactions.Step[];
+  }> {
+    try {
+      return (await this.getClient().interactions.create(request)) as {
+        output_text?: string;
+        steps?: Interactions.Step[];
+      };
+    } catch (cause) {
+      if (cause instanceof AIError) {
+        throw cause;
+      }
+
+      throw new AIError(AIErrorCode.PROVIDER_ERROR, { cause });
+    }
+  }
+
   async generateText(
     options: GenerateTextOptions,
   ): Promise<GenerateTextResult> {
@@ -75,17 +97,7 @@ export class GeminiService {
       }),
     } satisfies Interactions.CreateModelInteractionParamsNonStreaming;
 
-    let interaction: Awaited<ReturnType<GoogleGenAI["interactions"]["create"]>>;
-
-    try {
-      interaction = await this.getClient().interactions.create(request);
-    } catch (cause) {
-      if (cause instanceof AIError) {
-        throw cause;
-      }
-
-      throw new AIError(AIErrorCode.PROVIDER_ERROR, { cause });
-    }
+    const interaction = await this.createInteraction(request);
 
     const output = interaction.output_text?.trim();
 
@@ -96,6 +108,32 @@ export class GeminiService {
     return {
       text: output,
       steps: interaction.steps ?? [],
+    };
+  }
+
+  async generateToolInteraction(
+    options: GenerateToolInteractionOptions,
+  ): Promise<GenerateToolInteractionResult> {
+    const request = {
+      model: process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL,
+      input:
+        typeof options.input === "string" ? options.input : [...options.input],
+      store: false,
+      system_instruction: options.systemInstruction,
+      tools: [...options.tools],
+    } satisfies Interactions.CreateModelInteractionParamsNonStreaming;
+    const interaction = await this.createInteraction(request);
+    const steps = interaction.steps ?? [];
+
+    return {
+      ...(interaction.output_text?.trim() && {
+        text: interaction.output_text.trim(),
+      }),
+      steps,
+      functionCalls: steps.filter(
+        (step): step is Interactions.FunctionCallStep =>
+          step.type === "function_call",
+      ),
     };
   }
 }

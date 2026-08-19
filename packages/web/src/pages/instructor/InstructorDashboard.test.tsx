@@ -9,6 +9,7 @@ vi.mock("../../lib/api-client", () => ({
 }));
 
 const getMock = vi.mocked(apiClient.get);
+const postMock = vi.mocked(apiClient.post);
 
 const course = {
   id: "course-1",
@@ -53,6 +54,10 @@ describe("InstructorDashboard", () => {
       "href",
       "/courses/course-1",
     );
+    expect(
+      screen.queryByRole("button", { name: "Open Instructor Assistant" }),
+    ).not.toBeInTheDocument();
+    expect(postMock).not.toHaveBeenCalled();
   });
 
   it("shows an empty state when the instructor has no courses", async () => {

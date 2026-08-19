@@ -125,6 +125,50 @@ describe("assistant placement", () => {
     expect(screen.queryByText("COURSE")).not.toBeInTheDocument();
   });
 
+  it("uses the real Instructor Assistant endpoint and renders milestone sources", async () => {
+    setUser("instructor");
+    postMock.mockResolvedValueOnce({
+      data: {
+        data: {
+          type: "message",
+          answer: "Two submissions are waiting for grading.",
+          sources: [
+            {
+              type: "milestone",
+              id: "milestone-1",
+              title: "Authentication",
+            },
+          ],
+        },
+      },
+    } as never);
+    const { user } = renderInLayout(
+      "/courses/course-1",
+      <CourseContextAssistant
+        courseId="course-1"
+        courseTitle="Full Stack Bootcamp"
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Open Instructor Assistant" }),
+    );
+    await user.type(
+      screen.getByLabelText("Message Instructor Assistant"),
+      "What needs grading?",
+    );
+    await user.click(screen.getByRole("button", { name: "Send message" }));
+
+    expect(
+      await screen.findByText("Two submissions are waiting for grading."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Authentication")).toBeInTheDocument();
+    expect(postMock).toHaveBeenCalledWith(
+      "/courses/course-1/instructor-assistant",
+      { message: "What needs grading?", history: [] },
+    );
+  });
+
   it("uses the real Course Assistant endpoint and renders lesson sources", async () => {
     setUser("student");
     postMock.mockResolvedValueOnce({
@@ -209,25 +253,14 @@ describe("assistant placement", () => {
     expect(postMock).toHaveBeenCalledTimes(2);
   });
 
-  it("shows one Instructor Workspace assistant on the dashboard", async () => {
+  it("does not make an invalid instructor request without a dashboard course context", () => {
     setUser("instructor");
-    const { user } = renderInLayout(
-      "/instructor/dashboard",
-      <InstructorContextAssistant />,
-    );
+    renderInLayout("/instructor/dashboard", <InstructorContextAssistant />);
 
     expect(
-      screen.getAllByRole("button", { name: /Open .*Assistant/ }),
-    ).toHaveLength(1);
-    expect(
-      screen.queryByRole("button", { name: "Open MentorLane Assistant" }),
+      screen.queryByRole("button", { name: /Open .*Assistant/ }),
     ).not.toBeInTheDocument();
-    await user.click(
-      screen.getByRole("button", { name: "Open Instructor Assistant" }),
-    );
-    expect(screen.getByRole("dialog")).toHaveTextContent(
-      "Instructor Workspace",
-    );
+    expect(postMock).not.toHaveBeenCalled();
   });
 
   it("does not give a student the Instructor assistant", async () => {

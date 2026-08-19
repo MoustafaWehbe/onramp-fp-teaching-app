@@ -6,6 +6,7 @@ import {
   ASSISTANT_REQUEST_TIMEOUT_MS,
   MAX_ASSISTANT_HISTORY_MESSAGES,
   sendCourseAssistantMessage,
+  sendInstructorAssistantMessage,
 } from "./assistant-api";
 
 vi.mock("./api-client", () => ({
@@ -134,5 +135,57 @@ describe("Course Assistant API", () => {
     await expect(
       sendCourseAssistantMessage("course-1", "Question?", []),
     ).rejects.toThrow("Course enrollment required");
+  });
+});
+
+describe("Instructor Assistant API", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("calls the real course-scoped instructor endpoint and accepts lesson and milestone sources", async () => {
+    const instructorResponse = {
+      data: {
+        data: {
+          type: "message",
+          answer: "Two submissions are pending for Authentication.",
+          sources: [
+            {
+              type: "milestone",
+              id: "00000000-0000-4000-8000-000000000010",
+              title: "Authentication",
+            },
+            {
+              type: "lesson",
+              id: "00000000-0000-4000-8000-000000000011",
+              title: "JWT Refresh Tokens",
+            },
+          ],
+        },
+      },
+    };
+    postMock.mockResolvedValueOnce(instructorResponse as never);
+
+    await expect(
+      sendInstructorAssistantMessage("course/id", "What needs grading?", []),
+    ).resolves.toEqual(instructorResponse.data.data);
+    expect(postMock).toHaveBeenCalledWith(
+      "/courses/course%2Fid/instructor-assistant",
+      { message: "What needs grading?", history: [] },
+    );
+  });
+
+  it("rejects unsupported source types at the client boundary", async () => {
+    postMock.mockResolvedValueOnce({
+      data: {
+        data: {
+          type: "message",
+          answer: "Answer",
+          sources: [{ type: "policy", title: "Hidden policy" }],
+        },
+      },
+    } as never);
+
+    await expect(
+      sendInstructorAssistantMessage("course-1", "Question?", []),
+    ).rejects.toThrow("The server returned an invalid assistant source.");
   });
 });

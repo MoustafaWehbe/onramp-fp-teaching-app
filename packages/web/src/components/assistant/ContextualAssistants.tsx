@@ -1,13 +1,16 @@
 import { useCallback } from "react";
 import { useAuth } from "../../hooks/useAuth";
-import { sendCourseAssistantMessage } from "../../lib/assistant-api";
+import {
+  sendCourseAssistantMessage,
+  sendInstructorAssistantMessage,
+} from "../../lib/assistant-api";
 import {
   courseAssistant,
   generalAssistant,
   instructorAssistant,
 } from "./assistant-configs";
 import { AssistantLauncher } from "./AssistantLauncher";
-import { mockGeneralAssistant, mockInstructorAssistant } from "./mock-send";
+import { mockGeneralAssistant } from "./mock-send";
 import type { AssistantMessage } from "./types";
 
 export function GeneralAssistantLauncher() {
@@ -32,6 +35,11 @@ export function CourseContextAssistant({
       sendCourseAssistantMessage(courseId, message, history, signal),
     [courseId],
   );
+  const sendInstructorMessage = useCallback(
+    (message: string, history: AssistantMessage[]) =>
+      sendInstructorAssistantMessage(courseId, message, history),
+    [courseId],
+  );
   if (!user) return null;
 
   const isInstructor = user.role === "instructor";
@@ -42,7 +50,7 @@ export function CourseContextAssistant({
   return (
     <AssistantLauncher
       config={config}
-      onSend={isInstructor ? mockInstructorAssistant : sendCourseMessage}
+      onSend={isInstructor ? sendInstructorMessage : sendCourseMessage}
     />
   );
 }
@@ -54,10 +62,22 @@ export function InstructorContextAssistant({
   courseId?: string;
   courseTitle?: string;
 }) {
+  const sendInstructorMessage = useCallback(
+    (message: string, history: AssistantMessage[]) => {
+      if (!courseId) {
+        return Promise.reject(new Error("A course is required."));
+      }
+      return sendInstructorAssistantMessage(courseId, message, history);
+    },
+    [courseId],
+  );
+
+  if (!courseId || !courseTitle) return null;
+
   return (
     <AssistantLauncher
       config={instructorAssistant(courseId, courseTitle)}
-      onSend={mockInstructorAssistant}
+      onSend={sendInstructorMessage}
     />
   );
 }

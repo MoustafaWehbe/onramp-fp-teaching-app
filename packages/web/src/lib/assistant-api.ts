@@ -11,6 +11,10 @@ type CourseAssistantRequest =
   operations["askCourseAssistant"]["requestBody"]["content"]["application/json"];
 type CourseAssistantApiResponse =
   operations["askCourseAssistant"]["responses"][200]["content"]["application/json"];
+type InstructorAssistantRequest =
+  operations["askInstructorAssistant"]["requestBody"]["content"]["application/json"];
+type InstructorAssistantApiResponse =
+  operations["askInstructorAssistant"]["responses"][200]["content"]["application/json"];
 
 export const MAX_ASSISTANT_HISTORY_MESSAGES = 8;
 export const MAX_ASSISTANT_HISTORY_CONTENT = 1_500;
@@ -20,10 +24,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function requireSource(value: unknown): AssistantSource {
+function requireSource(
+  value: unknown,
+  allowedTypes: readonly AssistantSource["type"][],
+): AssistantSource {
   if (
     !isRecord(value) ||
-    value.type !== "lesson" ||
+    (value.type !== "lesson" && value.type !== "milestone") ||
+    !allowedTypes.includes(value.type) ||
     typeof value.title !== "string" ||
     value.title.trim() === "" ||
     (value.id !== undefined && typeof value.id !== "string")
@@ -32,13 +40,16 @@ function requireSource(value: unknown): AssistantSource {
   }
 
   return {
-    type: "lesson",
+    type: value.type,
     ...(value.id !== undefined && { id: value.id }),
     title: value.title,
   };
 }
 
-function requireAssistantResponse(value: unknown): AssistantResponse {
+function requireAssistantResponse(
+  value: unknown,
+  allowedSourceTypes: readonly AssistantSource["type"][],
+): AssistantResponse {
   if (
     !isRecord(value) ||
     value.type !== "message" ||
@@ -52,7 +63,9 @@ function requireAssistantResponse(value: unknown): AssistantResponse {
   return {
     type: "message",
     answer: value.answer,
-    sources: value.sources.map(requireSource),
+    sources: value.sources.map((source) =>
+      requireSource(source, allowedSourceTypes),
+    ),
   };
 }
 
@@ -90,5 +103,33 @@ export async function sendCourseAssistantMessage(
     );
   }
 
-  return requireAssistantResponse(response.data);
+  return requireAssistantResponse(response.data, ["lesson"]);
+}
+
+export async function sendInstructorAssistantMessage(
+  courseId: string,
+  message: string,
+  history: readonly AssistantMessage[],
+): Promise<AssistantResponse> {
+  const body: InstructorAssistantRequest = {
+    message,
+    history: boundedHistory(history),
+  };
+
+  let response: InstructorAssistantApiResponse;
+  try {
+    ({ data: response } = await apiClient.post<InstructorAssistantApiResponse>(
+      `/courses/${encodeURIComponent(courseId)}/instructor-assistant`,
+      body,
+    ));
+  } catch (error) {
+    throw new Error(
+      getApiErrorMessage(
+        error,
+        "The Instructor Assistant is unavailable. Please try again.",
+      ),
+    );
+  }
+
+  return requireAssistantResponse(response.data, ["lesson", "milestone"]);
 }

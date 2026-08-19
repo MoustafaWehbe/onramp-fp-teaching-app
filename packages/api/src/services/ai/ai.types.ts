@@ -31,3 +31,21 @@ export interface GenerateTextResult {
    */
   steps: readonly Interactions.Step[];
 }
+
+export interface GenerateToolInteractionOptions {
+  /**
+   * The complete application-managed interaction transcript for this turn.
+   */
+  input: string | readonly Interactions.Step[];
+  systemInstruction: string;
+  tools: readonly Interactions.Function[];
+}
+
+export interface GenerateToolInteractionResult {
+  /** Final model text, when the model did not request another function call. */
+  text?: string;
+  /** Provider steps returned for this turn, replayed verbatim in stateless mode. */
+  steps: readonly Interactions.Step[];
+  /** All custom function calls requested in this turn. */
+  functionCalls: readonly Interactions.FunctionCallStep[];
+}
