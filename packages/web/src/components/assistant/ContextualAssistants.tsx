@@ -7,7 +7,7 @@ import {
 import { AssistantLauncher } from "./AssistantLauncher";
 import {
   mockCourseAssistant,
-  mockGeneralAssistant,
+  sendGeneralAssistant,
   mockInstructorAssistant,
 } from "./mock-send";
 
@@ -15,7 +15,7 @@ export function GeneralAssistantLauncher() {
   return (
     <AssistantLauncher
       config={generalAssistant}
-      onSend={mockGeneralAssistant}
+      onSend={sendGeneralAssistant}
     />
   );
 }

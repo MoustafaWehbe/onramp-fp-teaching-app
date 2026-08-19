@@ -24,6 +24,8 @@ tags:
     description: Enrollment management
   - name: Submissions
     description: Submission management
+  - name: Assistant
+    description: General Assistant chatbot
 
 # ─── Reusable components ───────────────────────────────────────────────────────
 components:
@@ -479,6 +481,45 @@ components:
               message:
                 type: string
                 example: Invalid email address
+    AssistantMessageBody:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 1500
+          example: How do I submit my milestone work?
+
+    AssistantSource:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [policy, lesson, milestone]
+          example: policy
+        id:
+          type: string
+          example: submission-rules
+        title:
+          type: string
+          example: Submission Rules
+
+    AssistantResponse:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [message]
+          example: message
+        answer:
+          type: string
+          example: You can submit via a GitHub, Loom, or Vercel link.
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/AssistantSource"
+
 
 # ─── Paths ─────────────────────────────────────────────────────────────────────
 paths:
@@ -1409,6 +1450,60 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
           description: Forbidden - student only
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  # ─── Assistant ───────────────────────────────────────────────────────────────
+  /assistant/general:
+    post:
+      tags: [Assistant]
+      summary: Ask the General Assistant a platform question (authenticated users only)
+      operationId: askGeneralAssistant
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssistantMessageBody"
+      responses:
+        "200":
+          description: Assistant answer
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/AssistantResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: AI provider error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: AI service not configured
           content:
             application/json:
               schema:
