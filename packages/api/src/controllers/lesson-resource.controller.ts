@@ -136,6 +136,7 @@ export const lessonResourceController = {
         "Content-Disposition",
         `inline; filename="${asciiFileName(resource.originalFileName)}"; filename*=UTF-8''${encodeURIComponent(safeFileName(resource.originalFileName))}`,
       );
+      res.setHeader("X-Content-Type-Options", "nosniff");
       res.send(resource.fileData);
     } catch (error) {
       next(error);
