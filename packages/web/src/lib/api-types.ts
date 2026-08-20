@@ -216,9 +216,11 @@ export interface paths {
         };
         /** Get a module by ID */
         get: operations["getModule"];
-        put?: never;
+        /** Update a module (owning instructor only) */
+        put: operations["updateModule"];
         post?: never;
-        delete?: never;
+        /** Delete a module (owning instructor only) */
+        delete: operations["deleteModule"];
         options?: never;
         head?: never;
         patch?: never;
@@ -251,9 +253,11 @@ export interface paths {
         };
         /** Get a lesson by ID */
         get: operations["getLesson"];
-        put?: never;
+        /** Update or move a lesson (owning instructor only) */
+        put: operations["updateLesson"];
         post?: never;
-        delete?: never;
+        /** Delete a lesson (owning instructor only) */
+        delete: operations["deleteLesson"];
         options?: never;
         head?: never;
         patch?: never;
@@ -613,6 +617,12 @@ export interface components {
             /** @example 1 */
             order?: number;
         };
+        UpdateModuleBody: {
+            /** @example Frontend Module */
+            title: string;
+            /** @example 1 */
+            order: number;
+        };
         Lesson: {
             /** Format: uuid */
             id: string;
@@ -640,10 +650,23 @@ export interface components {
         CreateLessonBody: {
             /** @example HTML Basics */
             title: string;
-            content?: string;
-            videoUrl?: string;
-            starterCodeUrl?: string;
+            content?: string | null;
+            videoUrl?: string | null;
+            starterCodeUrl?: string | null;
             order?: number;
+        };
+        UpdateLessonBody: {
+            /** @example HTML Basics */
+            title: string;
+            content: string | null;
+            videoUrl: string | null;
+            starterCodeUrl: string | null;
+            order: number;
+            /**
+             * Format: uuid
+             * @description Optional destination module. It must be in the same owned course.
+             */
+            moduleId?: string;
         };
         LessonResource: {
             /** Format: uuid */
@@ -1612,6 +1635,76 @@ export interface operations {
             };
         };
     };
+    updateModule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseId: string;
+                moduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateModuleBody"];
+            };
+        };
+        responses: {
+            /** @description Module updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Module"];
+                    };
+                };
+            };
+            /** @description Course ownership required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    deleteModule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseId: string;
+                moduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Module deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Course ownership required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     getLessons: {
         parameters: {
             query?: never;
@@ -1725,6 +1818,76 @@ export interface operations {
             };
             /** @description Lesson not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    updateLesson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                moduleId: string;
+                lessonId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateLessonBody"];
+            };
+        };
+        responses: {
+            /** @description Lesson updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Lesson"];
+                    };
+                };
+            };
+            /** @description Course ownership and same-course move required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    deleteLesson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                moduleId: string;
+                lessonId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lesson deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Course ownership required */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

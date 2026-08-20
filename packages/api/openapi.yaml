@@ -263,6 +263,17 @@ components:
           type: integer
           example: 1
 
+    UpdateModuleBody:
+      type: object
+      required: [title, order]
+      properties:
+        title:
+          type: string
+          example: Frontend Module
+        order:
+          type: integer
+          example: 1
+
     Lesson:
       type: object
       required: [id, moduleId, title, content, videoUrl, starterCodeUrl, order]
@@ -303,13 +314,33 @@ components:
           type: string
           example: HTML Basics
         content:
-          type: string
+          type: [string, "null"]
         videoUrl:
-          type: string
+          type: [string, "null"]
         starterCodeUrl:
-          type: string
+          type: [string, "null"]
         order:
           type: integer
+
+    UpdateLessonBody:
+      type: object
+      required: [title, content, videoUrl, starterCodeUrl, order]
+      properties:
+        title:
+          type: string
+          example: HTML Basics
+        content:
+          type: [string, "null"]
+        videoUrl:
+          type: [string, "null"]
+        starterCodeUrl:
+          type: [string, "null"]
+        order:
+          type: integer
+        moduleId:
+          type: string
+          format: uuid
+          description: Optional destination module. It must be in the same owned course.
 
     LessonResource:
       type: object
@@ -1286,6 +1317,65 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+    put:
+      tags: [Modules]
+      summary: Update a module (owning instructor only)
+      operationId: updateModule
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: moduleId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateModuleBody" }
+      responses:
+        "200":
+          description: Module updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { data: { $ref: "#/components/schemas/Module" } }
+        "403":
+          description: Course ownership required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+    delete:
+      tags: [Modules]
+      summary: Delete a module (owning instructor only)
+      operationId: deleteModule
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: moduleId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Module deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "403":
+          description: Course ownership required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
 
   # ─── Lessons ─────────────────────────────────────────────────────────────────
   /modules/{moduleId}/lessons:
@@ -1404,6 +1494,65 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+    put:
+      tags: [Lessons]
+      summary: Update or move a lesson (owning instructor only)
+      operationId: updateLesson
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: moduleId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: lessonId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateLessonBody" }
+      responses:
+        "200":
+          description: Lesson updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { data: { $ref: "#/components/schemas/Lesson" } }
+        "403":
+          description: Course ownership and same-course move required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+    delete:
+      tags: [Lessons]
+      summary: Delete a lesson (owning instructor only)
+      operationId: deleteLesson
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: moduleId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: lessonId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Lesson deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "403":
+          description: Course ownership required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
 
   # ─── Milestones ──────────────────────────────────────────────────────────────
   /modules/{moduleId}/milestones:

@@ -173,4 +173,21 @@ describe("ModuleDetails", () => {
       screen.getByRole("link", { name: "Back to Course" }),
     ).toHaveAttribute("href", "/courses/course-1");
   });
+
+  it("shows lesson management controls only to the module's course owner", async () => {
+    useAuthMock.mockReturnValue({ user: { id: "instructor-1", role: "instructor", name: "Ivy", email: "ivy@example.com" }, isLoading: false, login: vi.fn(), register: vi.fn(), logout: vi.fn() });
+    renderModule();
+    await screen.findByRole("heading", { name: courseModule.title });
+    expect(screen.getByRole("button", { name: "Edit Module" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Add Lesson/i })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Edit" })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: "Delete" })).toHaveLength(2);
+  });
+
+  it("does not show lesson management controls to a student", async () => {
+    renderModule();
+    await screen.findByRole("heading", { name: courseModule.title });
+    expect(screen.queryByRole("button", { name: "Edit Module" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Add Lesson/i })).not.toBeInTheDocument();
+  });
 });

@@ -5,14 +5,18 @@ import {
   CircleAlert,
   RefreshCw,
 } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { CourseContextAssistant } from "../../components/assistant";
+import { DeleteConfirmationDialog, LessonEditorDialog, ModuleEditorDialog } from "../../components/content-management/ContentDialogs";
 import { QueryListSection } from "../../components/shared/QueryListSection";
 import { Button, buttonVariants } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import { useCourse } from "../../hooks/useCourses";
-import { useLessons, useModule } from "../../hooks/useModules";
+import { useCreateLesson, useDeleteLesson, useLessons, useModule, useModules, useUpdateLesson, useUpdateModule } from "../../hooks/useModules";
 import { getApiErrorMessage } from "../../lib/courses-api";
+import { useAuth } from "../../hooks/useAuth";
+import type { Lesson } from "../../lib/modules-api";
 
 function ModuleLoading() {
   return (
@@ -34,6 +38,8 @@ function ModuleLoading() {
 }
 
 export function ModuleDetails() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const { courseId, moduleId } = useParams<{
     courseId: string;
     moduleId: string;
@@ -41,6 +47,14 @@ export function ModuleDetails() {
   const courseQuery = useCourse(courseId);
   const moduleQuery = useModule(courseId, moduleId);
   const lessonsQuery = useLessons(moduleId);
+  const modulesQuery = useModules(courseId, user?.role === "instructor");
+  const [moduleEditorOpen, setModuleEditorOpen] = useState(false);
+  const [lessonEditor, setLessonEditor] = useState<Lesson | null | undefined>(undefined);
+  const [lessonToDelete, setLessonToDelete] = useState<Lesson | null>(null);
+  const updateModuleMutation = useUpdateModule(courseId ?? "", moduleId ?? "");
+  const createLessonMutation = useCreateLesson(moduleId ?? "");
+  const updateLessonMutation = useUpdateLesson(moduleId ?? "", lessonEditor?.id ?? "");
+  const deleteLessonMutation = useDeleteLesson(moduleId ?? "");
   const backToCourse = courseId ? `/courses/${courseId}` : "/courses";
 
   if (!courseId || !moduleId) {
@@ -111,6 +125,8 @@ export function ModuleDetails() {
 
   const course = courseQuery.data;
   const module = moduleQuery.data;
+  const canManage = user?.role === "instructor" && user.id === course.instructorId;
+  const closeLessonEditor = () => { setLessonEditor(undefined); createLessonMutation.reset(); updateLessonMutation.reset(); };
 
   return (
     <div className="space-y-8">
@@ -122,18 +138,19 @@ export function ModuleDetails() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to {course.title}
         </Link>
-        <div>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
           <p className="text-sm text-muted-foreground">{course.title}</p>
           <h1 className="mt-1 break-words text-3xl font-bold tracking-tight">
             {module.title}
           </h1>
+          </div>
+          {canManage && <Button type="button" variant="outline" onClick={() => setModuleEditorOpen(true)}>Edit Module</Button>}
         </div>
       </div>
 
       <section aria-labelledby="lessons-heading" className="space-y-4">
-        <h2 id="lessons-heading" className="text-xl font-semibold">
-          Lessons
-        </h2>
+        <div className="flex items-center justify-between gap-3"><h2 id="lessons-heading" className="text-xl font-semibold">Lessons</h2>{canManage && <Button type="button" onClick={() => setLessonEditor(null)}>+ Add Lesson</Button>}</div>
 
         <QueryListSection
           data={lessonsQuery.data}
@@ -152,23 +169,19 @@ export function ModuleDetails() {
               <ol className="divide-y divide-border">
                 {lessons.map((lesson, index) => (
                   <li key={lesson.id}>
-                    <Link
-                      to={`/courses/${course.id}/modules/${module.id}/lessons/${lesson.id}`}
-                      className="flex items-center justify-between gap-4 px-5 py-4 transition-colors hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-                    >
-                      <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex items-center justify-between gap-4 px-5 py-4">
+                      <Link to={`/courses/${course.id}/modules/${module.id}/lessons/${lesson.id}`} className="flex min-w-0 items-center gap-3 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold">
                           {index + 1}
                         </span>
                         <span className="truncate font-medium">
                           {lesson.title}
                         </span>
-                      </div>
-                      <ChevronRight
-                        aria-hidden="true"
-                        className="h-4 w-4 shrink-0 text-muted-foreground"
-                      />
-                    </Link>
+                        <span className="text-sm text-muted-foreground">Open</span>
+                        <ChevronRight aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      </Link>
+                      {canManage && <div className="flex flex-wrap gap-2"><Button type="button" variant="outline" size="sm" onClick={() => setLessonEditor(lesson)}>Edit</Button><Button type="button" variant="destructive" size="sm" onClick={() => setLessonToDelete(lesson)}>Delete</Button></div>}
+                    </div>
                   </li>
                 ))}
               </ol>
@@ -178,6 +191,9 @@ export function ModuleDetails() {
       </section>
 
       <CourseContextAssistant courseId={course.id} courseTitle={course.title} />
+      <ModuleEditorDialog open={moduleEditorOpen} module={module} isSaving={updateModuleMutation.isPending} error={updateModuleMutation.error} onCancel={() => { setModuleEditorOpen(false); updateModuleMutation.reset(); }} onSave={(values) => updateModuleMutation.mutate(values, { onSuccess: () => setModuleEditorOpen(false) })} />
+      <LessonEditorDialog open={lessonEditor !== undefined} lesson={lessonEditor ?? undefined} modules={modulesQuery.data ?? [module]} isSaving={createLessonMutation.isPending || updateLessonMutation.isPending} error={lessonEditor ? updateLessonMutation.error : createLessonMutation.error} onCancel={closeLessonEditor} onSave={(values) => { if (lessonEditor) updateLessonMutation.mutate(values, { onSuccess: (updated) => { closeLessonEditor(); if (updated.moduleId !== module.id) navigate(`/courses/${course.id}/modules/${updated.moduleId}/lessons/${updated.id}`); } }); else createLessonMutation.mutate(values, { onSuccess: closeLessonEditor }); }} />
+      <DeleteConfirmationDialog open={Boolean(lessonToDelete)} entityName={lessonToDelete?.title ?? "lesson"} isDeleting={deleteLessonMutation.isPending} error={deleteLessonMutation.error} onCancel={() => { setLessonToDelete(null); deleteLessonMutation.reset(); }} onConfirm={() => { if (lessonToDelete) deleteLessonMutation.mutate(lessonToDelete.id, { onSuccess: () => setLessonToDelete(null) }); }} />
     </div>
   );
 }

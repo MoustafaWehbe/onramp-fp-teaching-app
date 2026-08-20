@@ -11,6 +11,23 @@ type LessonsResponse =
   operations["getLessons"]["responses"][200]["content"]["application/json"];
 type LessonResponse =
   operations["getLesson"]["responses"][200]["content"]["application/json"];
+type CreateModuleResponse =
+  operations["createModule"]["responses"][201]["content"]["application/json"];
+type UpdateModuleResponse =
+  operations["updateModule"]["responses"][200]["content"]["application/json"];
+type CreateLessonResponse =
+  operations["createLesson"]["responses"][201]["content"]["application/json"];
+type UpdateLessonResponse =
+  operations["updateLesson"]["responses"][200]["content"]["application/json"];
+
+export type CreateModuleInput =
+  operations["createModule"]["requestBody"]["content"]["application/json"];
+export type UpdateModuleInput =
+  operations["updateModule"]["requestBody"]["content"]["application/json"];
+export type CreateLessonInput =
+  operations["createLesson"]["requestBody"]["content"]["application/json"];
+export type UpdateLessonInput =
+  operations["updateLesson"]["requestBody"]["content"]["application/json"];
 
 export interface Module {
   id: string;
@@ -131,4 +148,68 @@ export async function getLesson(
   );
 
   return normalizeLesson(data.data);
+}
+
+export async function createModule(
+  courseId: string,
+  input: CreateModuleInput,
+): Promise<Module> {
+  const { data } = await apiClient.post<CreateModuleResponse>(
+    `/courses/${encodeURIComponent(courseId)}/modules`,
+    input,
+  );
+  return normalizeModule(data.data);
+}
+
+export async function updateModule(
+  courseId: string,
+  moduleId: string,
+  input: UpdateModuleInput,
+): Promise<Module> {
+  const { data } = await apiClient.put<UpdateModuleResponse>(
+    `/courses/${encodeURIComponent(courseId)}/modules/${encodeURIComponent(moduleId)}`,
+    input,
+  );
+  return normalizeModule(data.data);
+}
+
+export async function deleteModule(
+  courseId: string,
+  moduleId: string,
+): Promise<void> {
+  await apiClient.delete(
+    `/courses/${encodeURIComponent(courseId)}/modules/${encodeURIComponent(moduleId)}`,
+  );
+}
+
+export async function createLesson(
+  moduleId: string,
+  input: CreateLessonInput,
+): Promise<Lesson> {
+  const { data } = await apiClient.post<CreateLessonResponse>(
+    `/modules/${encodeURIComponent(moduleId)}/lessons`,
+    input,
+  );
+  return normalizeLesson(data.data);
+}
+
+export async function updateLesson(
+  moduleId: string,
+  lessonId: string,
+  input: UpdateLessonInput,
+): Promise<Lesson> {
+  const { data } = await apiClient.put<UpdateLessonResponse>(
+    `/modules/${encodeURIComponent(moduleId)}/lessons/${encodeURIComponent(lessonId)}`,
+    input,
+  );
+  return normalizeLesson(data.data);
+}
+
+export async function deleteLesson(
+  moduleId: string,
+  lessonId: string,
+): Promise<void> {
+  await apiClient.delete(
+    `/modules/${encodeURIComponent(moduleId)}/lessons/${encodeURIComponent(lessonId)}`,
+  );
 }
