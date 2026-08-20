@@ -41,6 +41,7 @@ describe("lesson summary service", () => {
     ]);
     jest.spyOn(LessonResource, "scope").mockReturnValue({ findAll } as never);
     const result = await loadLessonSummaryMaterial("lesson-1");
+    expect(LessonResource.scope).toHaveBeenCalledWith("withExtractedText");
     expect(findAll).toHaveBeenCalledWith({
       where: { lessonId: "lesson-1" },
       order: [["createdAt", "ASC"]],

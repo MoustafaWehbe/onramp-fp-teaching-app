@@ -15,7 +15,7 @@ const provider = (): EmbeddingProvider & { embedPassages: jest.Mock } => ({
   embedQuery: jest.fn(async () => vector()),
   embedPassages: jest.fn(async (texts: readonly string[]) => texts.map(vector)),
 });
-const source: ResourceKnowledgeSource = {
+const baseSource: ResourceKnowledgeSource = {
   resourceId: "resource-1",
   lessonId: "lesson-1",
   moduleId: "module-1",
@@ -25,11 +25,8 @@ const source: ResourceKnowledgeSource = {
 };
 
 function fixture() {
+  const source = { ...baseSource };
   let resourceChunks: any[] = [];
-  const unrelated = [
-    { resourceId: null, sourceType: "lesson", lessonId: "lesson-1" },
-    { resourceId: "resource-2", sourceType: "pdf", lessonId: "lesson-1" },
-  ];
   const replaceResourceChunks = jest.fn(
     async (
       next: ResourceKnowledgeSource,
@@ -61,7 +58,6 @@ function fixture() {
     repository,
     replaceResourceChunks,
     chunks: () => resourceChunks,
-    unrelated,
   };
 }
 
@@ -79,10 +75,7 @@ describe("lesson resource indexing", () => {
       resourceId: "resource-1",
       sourceTitle: "Lecture PDF",
     });
-    expect(data.unrelated).toEqual([
-      { resourceId: null, sourceType: "lesson", lessonId: "lesson-1" },
-      { resourceId: "resource-2", sourceType: "pdf", lessonId: "lesson-1" },
-    ]);
+    expect(data.repository.listResourceChunks).toHaveBeenCalledWith("resource-1");
   });
 
   it("is idempotent and does not re-embed unchanged content", async () => {
@@ -111,7 +104,9 @@ describe("lesson resource indexing", () => {
       provider: embeddingProvider,
     });
     const old = [...data.chunks()];
-    source.content = "Changed PDF material";
+    const changedSource = await data.repository.findResource("resource-1");
+    if (!changedSource) throw new Error("Missing fixture source");
+    changedSource.content = "Changed PDF material";
     embeddingProvider.embedPassages.mockRejectedValueOnce(new Error("offline"));
     await expect(
       indexLessonResource("resource-1", {

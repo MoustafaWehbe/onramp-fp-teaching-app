@@ -149,10 +149,15 @@ describe("lesson resource controller", () => {
       "Content-Type",
       "application/pdf",
     );
-    expect(res.setHeader).toHaveBeenCalledWith(
-      "Content-Disposition",
-      'inline; filename="bad_name.pdf"',
-    );
+    expect(res.setHeader).toHaveBeenCalledWith("Content-Disposition", 'inline; filename="bad_name.pdf"; filename*=UTF-8\'\'bad_name.pdf');
     expect(res.send).toHaveBeenCalledWith(Buffer.from("%PDF-test"));
+  });
+
+  it("uses an ASCII fallback and RFC 6266 Unicode filename", async () => {
+    jest.spyOn(LessonResource, "scope").mockReturnValue({ findOne: jest.fn(async () => resource({ originalFileName: "講義.pdf" } as Partial<LessonResource>)) } as never);
+    const res = response();
+    await lessonResourceController.download(req(), res, jest.fn());
+    expect(res.setHeader).toHaveBeenCalledWith("Content-Disposition", expect.stringMatching(/^inline; filename="__\.pdf"; filename\*=UTF-8''%E8%AC%9B%E7%BE%A9\.pdf$/u));
+    expect(res.send).toHaveBeenCalled();
   });
 });

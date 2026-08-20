@@ -120,20 +120,27 @@ export const lessonController = {
         res.status(403).json({ error: "Lessons can only move within their course" });
         return;
       }
-      await lesson.update({
-        title: req.body.title,
-        content: req.body.content,
-        videoUrl: req.body.videoUrl,
-        starterCodeUrl: req.body.starterCodeUrl,
-        order: req.body.order,
-        moduleId: destinationModule.id,
-      });
-      if (destinationModule.id !== sourceModule.id) {
-        await KnowledgeChunk.update(
-          { moduleId: destinationModule.id },
-          { where: { lessonId: lesson.id } },
+      const sequelize = Lesson.sequelize;
+      if (!sequelize) throw new Error("Lesson model is not initialized");
+      await sequelize.transaction(async (transaction) => {
+        await lesson.update(
+          {
+            title: req.body.title,
+            content: req.body.content,
+            videoUrl: req.body.videoUrl,
+            starterCodeUrl: req.body.starterCodeUrl,
+            order: req.body.order,
+            moduleId: destinationModule.id,
+          },
+          { transaction },
         );
-      }
+        if (destinationModule.id !== sourceModule.id) {
+          await KnowledgeChunk.update(
+            { moduleId: destinationModule.id },
+            { where: { lessonId: lesson.id }, transaction },
+          );
+        }
+      });
       res.json({ data: lesson });
     } catch (err) {
       next(err);

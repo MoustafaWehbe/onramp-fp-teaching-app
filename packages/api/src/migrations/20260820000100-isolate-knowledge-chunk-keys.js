@@ -51,6 +51,10 @@ module.exports = {
         { transaction },
       );
       await queryInterface.sequelize.query(
+        'DELETE FROM "knowledge_chunks" WHERE "resource_id" IS NOT NULL',
+        { transaction },
+      );
+      await queryInterface.sequelize.query(
         `
           CREATE UNIQUE INDEX "knowledge_chunks_lesson_chunk_key"
             ON "knowledge_chunks" ("lesson_id", "chunk_index")

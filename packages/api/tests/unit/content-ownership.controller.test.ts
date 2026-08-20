@@ -26,6 +26,12 @@ const ownerModule = { id: "module-1", courseId: "course-1" } as Module;
 const secondOwnerModule = { id: "module-2", courseId: "course-1" } as Module;
 
 describe("module and lesson ownership", () => {
+  beforeEach(() => {
+    Object.defineProperty(Lesson, "sequelize", {
+      configurable: true,
+      value: { transaction: async (callback: (transaction: object) => Promise<void>) => callback({ id: "transaction-1" }) },
+    });
+  });
   afterEach(() => jest.restoreAllMocks());
 
   it.each(["student-1", "instructor-2"])("rejects module creation by %s", async (userId) => {
@@ -78,7 +84,7 @@ describe("module and lesson ownership", () => {
     jest.spyOn(Course, "findByPk").mockResolvedValue(ownerCourse);
     await lessonController.updateLesson(request({ moduleId: "module-1", id: "lesson-1" }, { title: "Updated", content: "", videoUrl: null, starterCodeUrl: null, order: 2 }), responseMock(), jest.fn() as NextFunction);
     await lessonController.deleteLesson(request({ moduleId: "module-1", id: "lesson-1" }), responseMock(), jest.fn() as NextFunction);
-    expect(update).toHaveBeenCalledWith(expect.objectContaining({ title: "Updated", moduleId: "module-1" }));
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ title: "Updated", moduleId: "module-1" }), { transaction: { id: "transaction-1" } });
     expect(destroy).toHaveBeenCalled();
   });
 
@@ -89,8 +95,27 @@ describe("module and lesson ownership", () => {
     jest.spyOn(Course, "findByPk").mockResolvedValue(ownerCourse);
     const updateChunks = jest.spyOn(KnowledgeChunk, "update").mockResolvedValue([1]);
     await lessonController.updateLesson(request({ moduleId: "module-1", id: "lesson-1" }, { title: "Moved", content: "", videoUrl: null, starterCodeUrl: null, order: 1, moduleId: "module-2" }), responseMock(), jest.fn() as NextFunction);
-    expect(update).toHaveBeenCalledWith(expect.objectContaining({ moduleId: "module-2" }));
-    expect(updateChunks).toHaveBeenCalledWith({ moduleId: "module-2" }, { where: { lessonId: "lesson-1" } });
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ moduleId: "module-2" }), { transaction: { id: "transaction-1" } });
+    expect(updateChunks).toHaveBeenCalledWith({ moduleId: "module-2" }, { where: { lessonId: "lesson-1" }, transaction: { id: "transaction-1" } });
+  });
+
+  it("rolls back the lesson move when chunk metadata cannot be updated", async () => {
+    const update = jest.fn();
+    let rolledBack = false;
+    Object.defineProperty(Lesson, "sequelize", {
+      configurable: true,
+      value: { transaction: async (callback: (transaction: object) => Promise<void>) => {
+        try { await callback({ id: "transaction-rollback" }); } catch (error) { rolledBack = true; throw error; }
+      } },
+    });
+    jest.spyOn(Lesson, "findOne").mockResolvedValue({ id: "lesson-1", moduleId: "module-1", update } as unknown as Lesson);
+    jest.spyOn(Module, "findByPk").mockResolvedValueOnce(ownerModule).mockResolvedValueOnce(secondOwnerModule);
+    jest.spyOn(Course, "findByPk").mockResolvedValue(ownerCourse);
+    jest.spyOn(KnowledgeChunk, "update").mockRejectedValue(new Error("chunk update failed"));
+    const next = jest.fn();
+    await lessonController.updateLesson(request({ moduleId: "module-1", id: "lesson-1" }, { title: "Moved", moduleId: "module-2" }), responseMock(), next as NextFunction);
+    expect(rolledBack).toBe(true);
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ message: "chunk update failed" }));
   });
 
   it("rejects a lesson move to a module in another course before mutation", async () => {
@@ -101,6 +126,18 @@ describe("module and lesson ownership", () => {
     const response = responseMock();
     await lessonController.updateLesson(request({ moduleId: "module-1", id: "lesson-1" }, { title: "Blocked", moduleId: "module-3" }), response, jest.fn() as NextFunction);
     expect(response.status).toHaveBeenCalledWith(403);
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("rejects a lesson move when the destination module does not exist", async () => {
+    const update = jest.fn();
+    jest.spyOn(Lesson, "findOne").mockResolvedValue({ id: "lesson-1", moduleId: "module-1", update } as unknown as Lesson);
+    jest.spyOn(Module, "findByPk").mockResolvedValueOnce(ownerModule).mockResolvedValueOnce(null);
+    jest.spyOn(Course, "findByPk").mockResolvedValue(ownerCourse);
+    const response = responseMock();
+    await lessonController.updateLesson(request({ moduleId: "module-1", id: "lesson-1" }, { title: "Blocked", moduleId: "missing-module" }), response, jest.fn() as NextFunction);
+    expect(response.status).toHaveBeenCalledWith(404);
+    expect(response.json).toHaveBeenCalledWith({ error: "Destination module not found" });
     expect(update).not.toHaveBeenCalled();
   });
 });

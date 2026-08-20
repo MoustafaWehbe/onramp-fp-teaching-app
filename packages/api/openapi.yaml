@@ -1350,6 +1350,16 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "404":
+          description: Module or course not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
     delete:
       tags: [Modules]
       summary: Delete a module (owning instructor only)
@@ -1373,6 +1383,16 @@ paths:
               schema: { $ref: "#/components/schemas/MessageResponse" }
         "403":
           description: Course ownership required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "404":
+          description: Module or course not found
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ErrorResponse" }
@@ -1527,6 +1547,16 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "404":
+          description: Lesson, source module, or destination module not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
     delete:
       tags: [Lessons]
       summary: Delete a lesson (owning instructor only)
@@ -1550,6 +1580,16 @@ paths:
               schema: { $ref: "#/components/schemas/MessageResponse" }
         "403":
           description: Course ownership required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "404":
+          description: Lesson, module, or course not found
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ErrorResponse" }
@@ -2144,7 +2184,15 @@ paths:
             schema: { type: string, format: uuid },
           }
       responses:
-        "200": { description: Resource deleted }
+        "200":
+          {
+            description: Resource deleted,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/MessageResponse" } },
+              },
+          }
         "401":
           {
             description: Unauthorized,
@@ -2227,6 +2275,12 @@ paths:
                   { schema: { $ref: "#/components/schemas/ErrorResponse" } },
               },
           }
+        "401":
+          { description: Unauthorized, content: { application/json: { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+        "403":
+          { description: Forbidden, content: { application/json: { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+        "404":
+          { description: Resource not found, content: { application/json: { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
 
   /modules/{moduleId}/lessons/{lessonId}/summary:
     post:

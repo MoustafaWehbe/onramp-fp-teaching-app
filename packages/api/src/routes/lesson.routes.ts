@@ -24,10 +24,11 @@ function parsePdfUpload(req: Request, res: Response, next: NextFunction): void {
       next(createError("PDF files must be 5 MiB or smaller", 422));
       return;
     }
-    if (error) {
+    if (error instanceof multer.MulterError) {
       next(createError("The PDF upload could not be processed", 422));
       return;
     }
+    if (error) return next(error);
     next();
   });
 }

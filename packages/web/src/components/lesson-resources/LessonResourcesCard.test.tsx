@@ -95,6 +95,7 @@ describe("LessonResourcesCard", () => {
         "Extra Notes",
       ),
     );
+    expect(screen.getByLabelText(/PDF file/)).toHaveValue("");
     expect(listMock).toHaveBeenCalledTimes(2);
   });
 

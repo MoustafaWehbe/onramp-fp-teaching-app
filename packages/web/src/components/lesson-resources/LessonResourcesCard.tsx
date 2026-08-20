@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Download,
@@ -51,6 +51,7 @@ export function LessonResourcesCard({
   const key = lessonResourceKeys.lesson(moduleId, lessonId);
   const [title, setTitle] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const resources = useQuery({
     queryKey: key,
     queryFn: () => listLessonResources(moduleId, lessonId),
@@ -61,6 +62,7 @@ export function LessonResourcesCard({
     onSuccess: async () => {
       setTitle("");
       setFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
       await refresh();
     },
   });
@@ -200,6 +202,7 @@ export function LessonResourcesCard({
                 type="file"
                 accept="application/pdf,.pdf"
                 required
+                ref={fileInputRef}
                 onChange={(event) => setFile(event.target.files?.[0] ?? null)}
               />
             </div>

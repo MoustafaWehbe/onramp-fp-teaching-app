@@ -27,12 +27,15 @@ function metadata(resource: LessonResource) {
 }
 
 function safeFileName(value: string): string {
-  return (
-    path
-      .basename(value)
-      .replace(/[\r\n"\\]/gu, "_")
-      .slice(0, 255) || "resource.pdf"
-  );
+  return path.basename(value).replace(/[\r\n"\\]/gu, "_").slice(0, 255) || "resource.pdf";
+}
+
+function asciiFileName(value: string): string {
+  const basename = safeFileName(value)
+    .replace(/[^\x20-\x7E]/gu, "_")
+    .replace(/^\.+/u, "")
+    .slice(0, 255);
+  return basename || "resource.pdf";
 }
 
 async function findScopedResource(req: Request, includeFile = false) {
@@ -104,7 +107,11 @@ export const lessonResourceController = {
       try {
         await indexLessonResource(resource.id);
         await resource.update({ indexStatus: "ready" });
-      } catch {
+      } catch (error) {
+        console.error("Lesson resource indexing failed", {
+          resourceId: resource.id,
+          error,
+        });
         await resource.update({ indexStatus: "failed" });
       }
       res.status(201).json({ data: metadata(resource) });
@@ -127,7 +134,7 @@ export const lessonResourceController = {
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
-        `inline; filename="${safeFileName(resource.originalFileName)}"`,
+        `inline; filename="${asciiFileName(resource.originalFileName)}"; filename*=UTF-8''${encodeURIComponent(safeFileName(resource.originalFileName))}`,
       );
       res.send(resource.fileData);
     } catch (error) {
@@ -173,7 +180,11 @@ export const lessonResourceController = {
       try {
         await indexLessonResource(resource.id);
         await resource.update({ indexStatus: "ready" });
-      } catch {
+      } catch (error) {
+        console.error("Lesson resource reindexing failed", {
+          resourceId: resource.id,
+          error,
+        });
         await resource.update({ indexStatus: "failed" });
         throw createError(
           "Resource AI indexing is temporarily unavailable",

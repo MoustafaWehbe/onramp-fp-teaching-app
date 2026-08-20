@@ -52,6 +52,6 @@ export async function extractPdfText(
     if (error instanceof Error && "statusCode" in error) throw error;
     throw createError("The PDF could not be read", 422);
   } finally {
-    await parser.destroy();
+    await parser.destroy().catch(() => undefined);
   }
 }
