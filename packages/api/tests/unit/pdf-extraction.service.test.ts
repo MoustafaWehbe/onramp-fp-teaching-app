@@ -1,5 +1,6 @@
 import {
   extractPdfText,
+  MAX_PDF_EXTRACTED_CHARACTERS,
   normalizeExtractedText,
   validatePdfUpload,
 } from "../../src/services/pdf-extraction.service";
@@ -56,6 +57,22 @@ describe("PDF upload validation", () => {
     ).rejects.toMatchObject({
       statusCode: 422,
       message: expect.stringContaining("no extractable text"),
+    });
+    expect(destroy).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects excessive extracted text before it can be stored or indexed", async () => {
+    const destroy = jest.fn(async () => undefined);
+    await expect(
+      extractPdfText(Buffer.from("%PDF-test"), () => ({
+        getText: jest.fn(async () => ({
+          text: "x".repeat(MAX_PDF_EXTRACTED_CHARACTERS + 1),
+        })),
+        destroy,
+      })),
+    ).rejects.toMatchObject({
+      statusCode: 422,
+      message: "PDF text must be 500,000 characters or fewer",
     });
     expect(destroy).toHaveBeenCalledTimes(1);
   });

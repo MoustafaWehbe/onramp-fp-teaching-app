@@ -5,6 +5,13 @@ import { instructorKeys } from "../hooks/useInstructor";
 import { moduleKeys } from "../hooks/useModules";
 import { submissionKeys } from "../hooks/useSubmissions";
 import { apiClient } from "../lib/api-client";
+import {
+  clearAssistantConversations,
+  getConversation,
+  isAssistantOpen,
+  setAssistantOpen,
+  setConversation,
+} from "../components/assistant/conversation-store";
 import { createTestQueryClient, renderWithProviders } from "../test/test-utils";
 import { AuthProvider, useAuthContext, type AuthUser } from "./AuthProvider";
 
@@ -86,6 +93,7 @@ function renderAuthProvider() {
 describe("AuthProvider learning-data cache isolation", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    clearAssistantConversations();
     getMock.mockResolvedValue({ data: { data: currentUser } } as never);
   });
 
@@ -96,6 +104,10 @@ describe("AuthProvider learning-data cache isolation", () => {
     const { user, queryClient } = renderAuthProvider();
 
     expect(await screen.findByText(currentUser.email)).toBeInTheDocument();
+    setConversation("course:course-1", [
+      { id: "message-1", role: "user", content: "Private question" },
+    ]);
+    setAssistantOpen("course:course-1", true);
     await user.click(
       screen.getByRole("button", { name: "Log in as next user" }),
     );
@@ -115,6 +127,8 @@ describe("AuthProvider learning-data cache isolation", () => {
     expect(
       queryClient.getQueryData(moduleKeys.lesson("module-1", "lesson-1")),
     ).toBeUndefined();
+    expect(getConversation("course:course-1")).toEqual([]);
+    expect(isAssistantOpen("course:course-1")).toBe(false);
   });
 
   it.each([
@@ -131,6 +145,10 @@ describe("AuthProvider learning-data cache isolation", () => {
       const { user, queryClient } = renderAuthProvider();
 
       expect(await screen.findByText(currentUser.email)).toBeInTheDocument();
+      setConversation("course:course-1", [
+        { id: "message-1", role: "assistant", content: "Private answer" },
+      ]);
+      setAssistantOpen("course:course-1", true);
       await user.click(screen.getByRole("button", { name: "Log out" }));
 
       await waitFor(() =>
@@ -150,6 +168,8 @@ describe("AuthProvider learning-data cache isolation", () => {
       expect(
         queryClient.getQueryData(moduleKeys.lesson("module-1", "lesson-1")),
       ).toBeUndefined();
+      expect(getConversation("course:course-1")).toEqual([]);
+      expect(isAssistantOpen("course:course-1")).toBe(false);
     },
   );
 });

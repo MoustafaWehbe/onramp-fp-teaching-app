@@ -1,6 +1,7 @@
 import path from "node:path";
 import type { NextFunction, Request, Response } from "express";
 import { KnowledgeChunk } from "@starter-kit/shared/db/models/KnowledgeChunk";
+import { Lesson } from "@starter-kit/shared/db/models/Lesson";
 import { LessonResource } from "@starter-kit/shared/db/models/LessonResource";
 import { createError } from "../middleware/error-handler";
 import { indexLessonResource } from "../services/ai/rag/lesson-resource-indexing.service";
@@ -10,7 +11,7 @@ import {
   validatePdfUpload,
 } from "../services/pdf-extraction.service";
 
-const MAX_RESOURCES_PER_LESSON = 10;
+export const MAX_RESOURCES_PER_LESSON = 10;
 
 function metadata(resource: LessonResource) {
   return {
@@ -27,7 +28,12 @@ function metadata(resource: LessonResource) {
 }
 
 function safeFileName(value: string): string {
-  return path.basename(value).replace(/[\r\n"\\]/gu, "_").slice(0, 255) || "resource.pdf";
+  return (
+    path
+      .basename(value)
+      .replace(/[\r\n"\\]/gu, "_")
+      .slice(0, 255) || "resource.pdf"
+  );
 }
 
 function asciiFileName(value: string): string {
@@ -85,8 +91,9 @@ export const lessonResourceController = {
   async upload(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       validatePdfUpload(req.file);
-      const extractedText = await extractPdfText(req.file.buffer);
-      const originalFileName = safeFileName(req.file.originalname);
+      const file = req.file;
+      const extractedText = await extractPdfText(file.buffer);
+      const originalFileName = safeFileName(file.originalname);
       const suppliedTitle =
         typeof req.body.title === "string" ? req.body.title.trim() : "";
       const title = (suppliedTitle || path.parse(originalFileName).name).slice(
@@ -94,15 +101,36 @@ export const lessonResourceController = {
         255,
       );
       if (!title) throw createError("Resource title is required", 422);
-      const resource = await LessonResource.create({
-        lessonId: req.params.lessonId as string,
-        title,
-        originalFileName,
-        mimeType: "application/pdf",
-        sizeBytes: req.file.size,
-        fileData: req.file.buffer,
-        extractedText,
-        indexStatus: "pending",
+      const sequelize = LessonResource.sequelize;
+      if (!sequelize)
+        throw new Error("LessonResource model is not initialized");
+      const lessonId = req.params.lessonId as string;
+      const resource = await sequelize.transaction(async (transaction) => {
+        const lesson = await Lesson.findByPk(lessonId, {
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+        if (!lesson) throw createError("Lesson not found", 404);
+        const count = await LessonResource.count({
+          where: { lessonId },
+          transaction,
+        });
+        if (count >= MAX_RESOURCES_PER_LESSON) {
+          throw createError("A lesson can have at most 10 resources", 422);
+        }
+        return LessonResource.create(
+          {
+            lessonId,
+            title,
+            originalFileName,
+            mimeType: "application/pdf",
+            sizeBytes: file.size,
+            fileData: file.buffer,
+            extractedText,
+            indexStatus: "pending",
+          },
+          { transaction },
+        );
       });
       try {
         await indexLessonResource(resource.id);

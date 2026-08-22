@@ -11,6 +11,7 @@ import { instructorKeys } from "../hooks/useInstructor";
 import { moduleKeys } from "../hooks/useModules";
 import { submissionKeys } from "../hooks/useSubmissions";
 import { apiClient } from "../lib/api-client";
+import { clearAssistantConversations } from "../components/assistant/conversation-store";
 
 export type UserRole = "instructor" | "student";
 
@@ -47,7 +48,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     apiClient
       .get<{ data: AuthUser }>("/auth/me")
-      .then(({ data }) => setUser(data.data))
+      .then(({ data }) => {
+        clearAssistantConversations();
+        setUser(data.data);
+      })
       .catch(() => setUser(null))
       .finally(() => setIsLoading(false));
   }, []);
@@ -57,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { user: AuthUser };
     }>("/auth/login", { email, password });
     clearUserScopedQueries(queryClient);
+    clearAssistantConversations();
     setUser(data.data.user);
   }
 
@@ -73,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await apiClient.post("/auth/logout");
     } finally {
       clearUserScopedQueries(queryClient);
+      clearAssistantConversations();
       setUser(null);
     }
   }
