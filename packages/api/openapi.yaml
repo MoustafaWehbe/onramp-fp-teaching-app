@@ -39,7 +39,7 @@ components:
   schemas:
     RegisterBody:
       type: object
-      required: [email, password, name, role]
+      required: [email, password, name]
       properties:
         email:
           type: string
@@ -55,10 +55,6 @@ components:
           minLength: 2
           maxLength: 100
           example: Jane Doe
-        role:
-          type: string
-          enum: [instructor, student]
-          example: student
 
     LoginBody:
       type: object
@@ -117,6 +113,7 @@ components:
           example: A complete bootcamp covering frontend and backend
         enrollmentCode:
           type: string
+          description: Returned only to the instructor who owns the course
           example: ABC123
         isPublished:
           type: boolean
@@ -1845,6 +1842,18 @@ paths:
                     $ref: "#/components/schemas/Submission"
         "401":
           description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Published course enrollment required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: The student already submitted this milestone
           content:
             application/json:
               schema:

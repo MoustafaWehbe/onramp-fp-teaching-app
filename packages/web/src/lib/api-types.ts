@@ -491,11 +491,6 @@ export interface components {
             password: string;
             /** @example Jane Doe */
             name: string;
-            /**
-             * @example student
-             * @enum {string}
-             */
-            role: "instructor" | "student";
         };
         LoginBody: {
             /**
@@ -544,7 +539,10 @@ export interface components {
             title?: string;
             /** @example A complete bootcamp covering frontend and backend */
             description?: string;
-            /** @example ABC123 */
+            /**
+             * @description Returned only to the instructor who owns the course
+             * @example ABC123
+             */
             enrollmentCode?: string;
             /** @example true */
             isPublished?: boolean;
@@ -2223,6 +2221,24 @@ export interface operations {
             };
             /** @description Unauthorized */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Published course enrollment required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description The student already submitted this milestone */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import type { Transaction } from "sequelize";
 import { Course } from "@starter-kit/shared/db/models/Course";
+import { Enrollment } from "@starter-kit/shared/db/models/Enrollment";
 import { Milestone } from "@starter-kit/shared/db/models/Milestone";
 import { Module } from "@starter-kit/shared/db/models/Module";
 import { Submission } from "@starter-kit/shared/db/models/Submission";
@@ -43,6 +44,27 @@ function ownedModuleInclude(instructorId = "instructor-1") {
   ];
 }
 
+function mockMilestoneCourse(
+  instructorId = "instructor-1",
+  isPublished = true,
+) {
+  const findMilestone = jest
+    .spyOn(Milestone, "findOne")
+    .mockResolvedValue({
+      id: "milestone-1",
+      moduleId: "module-1",
+    } as Milestone);
+  jest
+    .spyOn(Module, "findByPk")
+    .mockResolvedValue({ id: "module-1", courseId: "course-1" } as Module);
+  jest.spyOn(Course, "findByPk").mockResolvedValue({
+    id: "course-1",
+    instructorId,
+    isPublished,
+  } as Course);
+  return findMilestone;
+}
+
 describe("submissionController", () => {
   afterEach(() => {
     jest.restoreAllMocks();
@@ -51,9 +73,7 @@ describe("submissionController", () => {
 
   describe("getSubmissions", () => {
     it("checks course ownership and includes only safe student fields for instructors", async () => {
-      const findMilestone = jest
-        .spyOn(Milestone, "findOne")
-        .mockResolvedValue({ id: "milestone-1" } as Milestone);
+      const findMilestone = mockMilestoneCourse();
       const findAll = jest.spyOn(Submission, "findAll").mockResolvedValue([]);
       const response = responseMock();
       const next = jest.fn() as NextFunction;
@@ -66,8 +86,6 @@ describe("submissionController", () => {
 
       expect(findMilestone).toHaveBeenCalledWith({
         where: { id: "milestone-1" },
-        attributes: ["id"],
-        include: ownedModuleInclude(),
       });
       expect(findAll).toHaveBeenCalledWith({
         where: { milestoneId: "milestone-1" },
@@ -85,7 +103,7 @@ describe("submissionController", () => {
     });
 
     it("rejects an instructor who does not own the milestone course", async () => {
-      jest.spyOn(Milestone, "findOne").mockResolvedValue(null);
+      mockMilestoneCourse("instructor-2");
       const findAll = jest.spyOn(Submission, "findAll");
       const response = responseMock();
       const next = jest.fn() as NextFunction;
@@ -103,6 +121,10 @@ describe("submissionController", () => {
     });
 
     it("preserves the student-only privacy filter without student association data", async () => {
+      mockMilestoneCourse();
+      jest
+        .spyOn(Enrollment, "findOne")
+        .mockResolvedValue({ id: "enrollment-1" } as Enrollment);
       const findAll = jest.spyOn(Submission, "findAll").mockResolvedValue([]);
       const response = responseMock();
       const next = jest.fn() as NextFunction;
@@ -177,10 +199,69 @@ describe("submissionController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("commits the submission and links in one managed transaction", async () => {
+    it("rejects a non-enrolled student before creating a submission", async () => {
+      mockMilestoneCourse();
+      jest.spyOn(Enrollment, "findOne").mockResolvedValue(null);
+      const create = jest.spyOn(Submission, "create");
+      const response = responseMock();
+
+      await submissionController.createSubmission(
+        createRequest(),
+        response,
+        jest.fn(),
+      );
+
+      expect(response.status).toHaveBeenCalledWith(403);
+      expect(create).not.toHaveBeenCalled();
+    });
+
+    it("rejects a student submission to an unpublished course", async () => {
+      mockMilestoneCourse("instructor-1", false);
+      const findEnrollment = jest.spyOn(Enrollment, "findOne");
+      const create = jest.spyOn(Submission, "create");
+      const response = responseMock();
+
+      await submissionController.createSubmission(
+        createRequest(),
+        response,
+        jest.fn(),
+      );
+
+      expect(response.status).toHaveBeenCalledWith(403);
+      expect(findEnrollment).not.toHaveBeenCalled();
+      expect(create).not.toHaveBeenCalled();
+    });
+
+    it("returns 409 for a duplicate student and milestone", async () => {
+      mockMilestoneCourse();
       jest
-        .spyOn(Milestone, "findByPk")
-        .mockResolvedValue({ id: "milestone-1" } as Milestone);
+        .spyOn(Enrollment, "findOne")
+        .mockResolvedValue({ id: "enrollment-1" } as Enrollment);
+      jest
+        .spyOn(Submission, "findOne")
+        .mockResolvedValue({ id: "submission-existing" } as Submission);
+      const create = jest.spyOn(Submission, "create");
+      const response = responseMock();
+
+      await submissionController.createSubmission(
+        createRequest(),
+        response,
+        jest.fn(),
+      );
+
+      expect(response.status).toHaveBeenCalledWith(409);
+      expect(response.json).toHaveBeenCalledWith({
+        error: "You have already submitted work for this milestone",
+      });
+      expect(create).not.toHaveBeenCalled();
+    });
+
+    it("commits the submission and links in one managed transaction", async () => {
+      mockMilestoneCourse();
+      jest
+        .spyOn(Enrollment, "findOne")
+        .mockResolvedValue({ id: "enrollment-1" } as Enrollment);
+      jest.spyOn(Submission, "findOne").mockResolvedValue(null);
       const managed = mockManagedTransaction();
       const submission = {
         id: "submission-1",
@@ -230,9 +311,11 @@ describe("submissionController", () => {
     });
 
     it("rolls back when creating submission links fails", async () => {
+      mockMilestoneCourse();
       jest
-        .spyOn(Milestone, "findByPk")
-        .mockResolvedValue({ id: "milestone-1" } as Milestone);
+        .spyOn(Enrollment, "findOne")
+        .mockResolvedValue({ id: "enrollment-1" } as Enrollment);
+      jest.spyOn(Submission, "findOne").mockResolvedValue(null);
       const managed = mockManagedTransaction();
       const submission = {
         id: "submission-1",

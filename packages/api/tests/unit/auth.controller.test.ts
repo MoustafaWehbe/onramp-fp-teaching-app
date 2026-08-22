@@ -61,6 +61,30 @@ describe("POST /api/auth/register", () => {
 
     expect(res.status).toBe(422);
   });
+
+  it("ignores a client-supplied instructor role and registers a student", async () => {
+    mockAuthService.register.mockResolvedValue({
+      id: "uuid-2",
+      email: "student@example.com",
+      name: "Student",
+      role: "student",
+    });
+
+    const res = await request(app).post("/api/auth/register").send({
+      email: "student@example.com",
+      password: "SecurePass1",
+      name: "Student",
+      role: "instructor",
+    });
+
+    expect(res.status).toBe(201);
+    expect(mockAuthService.register).toHaveBeenCalledWith({
+      email: "student@example.com",
+      password: "SecurePass1",
+      name: "Student",
+    });
+    expect(res.body.data.role).toBe("student");
+  });
 });
 
 // ─── POST /api/auth/login ─────────────────────────────────────────────────────

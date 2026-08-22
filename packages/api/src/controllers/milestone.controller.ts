@@ -1,5 +1,10 @@
 import type { Request, Response, NextFunction } from "express";
 import { Milestone } from "@starter-kit/shared/db/models/Milestone";
+import {
+  canAccessCourseContent,
+  loadMilestoneCourse,
+  loadModuleCourse,
+} from "../services/course-content-access.service";
 
 function getParam(value: string | string[]): string {
   return Array.isArray(value) ? value[0] : value;
@@ -13,9 +18,18 @@ export const milestoneController = {
   ): Promise<void> {
     try {
       const moduleId = getParam(req.params.moduleId);
+      const context = await loadModuleCourse(moduleId);
+      if (!context) {
+        res.status(404).json({ error: "Module not found" });
+        return;
+      }
+      if (!(await canAccessCourseContent(context.course, req.user!))) {
+        res.status(403).json({ error: "Forbidden" });
+        return;
+      }
 
       const milestones = await Milestone.findAll({
-        where: { moduleId },
+        where: { moduleId: context.module.id },
       });
 
       res.json({ data: milestones });
@@ -33,18 +47,17 @@ export const milestoneController = {
       const id = getParam(req.params.id);
       const moduleId = getParam(req.params.moduleId);
 
-      const milestone = await Milestone.findOne({
-        where: {
-          id,
-          moduleId,
-        },
-      });
-      if (!milestone) {
+      const context = await loadMilestoneCourse(id, moduleId);
+      if (!context) {
         res.status(404).json({ error: "Milestone not found" });
         return;
       }
+      if (!(await canAccessCourseContent(context.course, req.user!))) {
+        res.status(403).json({ error: "Forbidden" });
+        return;
+      }
 
-      res.json({ data: milestone });
+      res.json({ data: context.milestone });
     } catch (err) {
       next(err);
     }
@@ -57,9 +70,18 @@ export const milestoneController = {
   ): Promise<void> {
     try {
       const moduleId = getParam(req.params.moduleId);
+      const context = await loadModuleCourse(moduleId);
+      if (!context) {
+        res.status(404).json({ error: "Module not found" });
+        return;
+      }
+      if (!(await canAccessCourseContent(context.course, req.user!, true))) {
+        res.status(403).json({ error: "Forbidden" });
+        return;
+      }
 
       const milestone = await Milestone.create({
-        moduleId,
+        moduleId: context.module.id,
         title: req.body.title,
         instructions: req.body.instructions,
         acceptanceCriteria: req.body.acceptanceCriteria,
@@ -80,24 +102,23 @@ export const milestoneController = {
       const id = getParam(req.params.id);
       const moduleId = getParam(req.params.moduleId);
 
-      const milestone = await Milestone.findOne({
-        where: {
-          id,
-          moduleId,
-        },
-      });
-      if (!milestone) {
+      const context = await loadMilestoneCourse(id, moduleId);
+      if (!context) {
         res.status(404).json({ error: "Milestone not found" });
         return;
       }
+      if (!(await canAccessCourseContent(context.course, req.user!, true))) {
+        res.status(403).json({ error: "Forbidden" });
+        return;
+      }
 
-      await milestone.update({
+      await context.milestone.update({
         title: req.body.title,
         instructions: req.body.instructions,
         acceptanceCriteria: req.body.acceptanceCriteria,
       });
 
-      res.json({ data: milestone });
+      res.json({ data: context.milestone });
     } catch (err) {
       next(err);
     }
@@ -112,18 +133,17 @@ export const milestoneController = {
       const id = getParam(req.params.id);
       const moduleId = getParam(req.params.moduleId);
 
-      const milestone = await Milestone.findOne({
-        where: {
-          id,
-          moduleId,
-        },
-      });
-      if (!milestone) {
+      const context = await loadMilestoneCourse(id, moduleId);
+      if (!context) {
         res.status(404).json({ error: "Milestone not found" });
         return;
       }
+      if (!(await canAccessCourseContent(context.course, req.user!, true))) {
+        res.status(403).json({ error: "Forbidden" });
+        return;
+      }
 
-      await milestone.destroy();
+      await context.milestone.destroy();
 
       res.json({
         data: { message: "Milestone deleted successfully" },

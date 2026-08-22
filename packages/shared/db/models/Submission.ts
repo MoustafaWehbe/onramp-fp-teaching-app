@@ -14,11 +14,10 @@ export interface SubmissionAttributes {
   updatedAt?: Date;
 }
 
-export interface SubmissionCreationAttributes
-  extends Optional <
-    SubmissionAttributes,
-    "id" | "gradedBy" | "score" | "feedback" | "submittedAt" | "gradedAt"
-  > {}
+export interface SubmissionCreationAttributes extends Optional<
+  SubmissionAttributes,
+  "id" | "gradedBy" | "score" | "feedback" | "submittedAt" | "gradedAt"
+> {}
 
 export class Submission
   extends Model<SubmissionAttributes, SubmissionCreationAttributes>
@@ -83,6 +82,13 @@ export class Submission
         tableName: "submissions",
         timestamps: true,
         underscored: true,
+        indexes: [
+          {
+            unique: true,
+            fields: ["student_id", "milestone_id"],
+            name: "submissions_student_id_milestone_id_key",
+          },
+        ],
       },
     );
     return Submission;

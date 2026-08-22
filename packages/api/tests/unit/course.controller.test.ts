@@ -70,9 +70,73 @@ describe("courseController authorization regressions", () => {
       where: { studentId: "student-1" },
     });
     expect(findCourses).toHaveBeenCalledWith({
-      where: { id: ["course-1", "course-2"] },
+      where: { id: ["course-1", "course-2"], isPublished: true },
     });
     expect(response.json).toHaveBeenCalledWith({ data: [] });
     expect(next).not.toHaveBeenCalled();
+  });
+
+  it("never exposes enrollment codes in student course responses", async () => {
+    jest
+      .spyOn(Enrollment, "findAll")
+      .mockResolvedValue([{ courseId: "course-1" }] as Enrollment[]);
+    jest.spyOn(Course, "findAll").mockResolvedValue([
+      {
+        id: "course-1",
+        instructorId: "instructor-1",
+        title: "Private code course",
+        enrollmentCode: "SECRET42",
+        isPublished: true,
+      } as Course,
+    ]);
+    const response = responseMock();
+
+    await courseController.getCourses(
+      {
+        user: { userId: "student-1", role: "student" },
+      } as unknown as Request,
+      response,
+      jest.fn(),
+    );
+
+    const payload = (response.json as jest.Mock).mock.calls[0]![0];
+    expect(payload.data[0]).not.toHaveProperty("enrollmentCode");
+  });
+
+  it("exposes the enrollment code only to the owning instructor", async () => {
+    const course = {
+      id: "course-1",
+      instructorId: "instructor-1",
+      title: "Course",
+      enrollmentCode: "OWNER42",
+      isPublished: true,
+    } as Course;
+    jest.spyOn(Course, "findByPk").mockResolvedValue(course);
+
+    const ownerResponse = responseMock();
+    await courseController.getCourse(
+      {
+        params: { id: "course-1" },
+        user: { userId: "instructor-1", role: "instructor" },
+      } as unknown as Request,
+      ownerResponse,
+      jest.fn(),
+    );
+    expect(
+      (ownerResponse.json as jest.Mock).mock.calls[0]![0].data,
+    ).toHaveProperty("enrollmentCode", "OWNER42");
+
+    const otherResponse = responseMock();
+    await courseController.getCourse(
+      {
+        params: { id: "course-1" },
+        user: { userId: "student-1", role: "student" },
+      } as unknown as Request,
+      otherResponse,
+      jest.fn(),
+    );
+    expect(
+      (otherResponse.json as jest.Mock).mock.calls[0]![0].data,
+    ).not.toHaveProperty("enrollmentCode");
   });
 });

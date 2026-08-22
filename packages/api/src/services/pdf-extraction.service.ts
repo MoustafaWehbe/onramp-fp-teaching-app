@@ -2,6 +2,9 @@ import { PDFParse } from "pdf-parse";
 import { createError } from "../middleware/error-handler";
 
 export const MAX_PDF_BYTES = 5 * 1024 * 1024;
+// Bounds parser amplification and downstream embedding/storage work while
+// leaving room for long course handouts (roughly 250-350 pages of prose).
+export const MAX_PDF_EXTRACTED_CHARACTERS = 500_000;
 
 export function validatePdfUpload(
   file?: Express.Multer.File,
@@ -41,6 +44,9 @@ export async function extractPdfText(
   try {
     const result = await parser.getText();
     const text = normalizeExtractedText(result.text ?? "");
+    if (text.length > MAX_PDF_EXTRACTED_CHARACTERS) {
+      throw createError("PDF text must be 500,000 characters or fewer", 422);
+    }
     if (!text.replace(/\s/gu, "")) {
       throw createError(
         "This PDF has no extractable text. Scanned PDFs without text are not supported yet.",
