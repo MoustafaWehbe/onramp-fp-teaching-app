@@ -237,4 +237,19 @@ describe("LessonDetails", () => {
       screen.getByRole("link", { name: "Back to Module" }),
     ).toHaveAttribute("href", "/courses/course-1/modules/module-1");
   });
+
+  it("shows edit and delete controls to the owning instructor only", async () => {
+    useAuthMock.mockReturnValue({ user: { id: "instructor-1", role: "instructor", name: "Ivy", email: "ivy@example.com" }, isLoading: false, login: vi.fn(), register: vi.fn(), logout: vi.fn() });
+    renderLesson();
+    await screen.findByRole("heading", { name: lesson.title, level: 1 });
+    expect(screen.getByRole("button", { name: "Edit Lesson" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Delete Lesson" })).toBeInTheDocument();
+  });
+
+  it("does not show edit or delete controls to a student", async () => {
+    renderLesson();
+    await screen.findByRole("heading", { name: lesson.title, level: 1 });
+    expect(screen.queryByRole("button", { name: "Edit Lesson" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete Lesson" })).not.toBeInTheDocument();
+  });
 });

@@ -1,11 +1,21 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  createLesson,
+  createModule,
+  deleteLesson,
+  deleteModule,
   getLesson,
   getLessons,
   getModule,
   getModules,
+  updateLesson,
+  updateModule,
+  type CreateLessonInput,
+  type CreateModuleInput,
   type Lesson,
   type Module,
+  type UpdateLessonInput,
+  type UpdateModuleInput,
 } from "../lib/modules-api";
 
 export const moduleKeys = {
@@ -22,11 +32,11 @@ export const moduleKeys = {
 
 const CONTENT_STALE_TIME = 60_000;
 
-export function useModules(courseId: string | undefined) {
+export function useModules(courseId: string | undefined, enabled = true) {
   return useQuery({
     queryKey: moduleKeys.modules(courseId ?? ""),
     queryFn: () => getModules(courseId as string),
-    enabled: Boolean(courseId),
+    enabled: Boolean(courseId) && enabled,
     staleTime: CONTENT_STALE_TIME,
   });
 }
@@ -79,5 +89,73 @@ export function useLesson(
         ?.find((lesson) => lesson.id === lessonId),
     initialDataUpdatedAt: () =>
       queryClient.getQueryState(lessonsKey)?.dataUpdatedAt,
+  });
+}
+
+export function useCreateModule(courseId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateModuleInput) => createModule(courseId, input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: moduleKeys.modules(courseId) });
+    },
+  });
+}
+
+export function useUpdateModule(courseId: string, moduleId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UpdateModuleInput) => updateModule(courseId, moduleId, input),
+    onSuccess: (module) => {
+      queryClient.setQueryData(moduleKeys.module(courseId, module.id), module);
+      void queryClient.invalidateQueries({ queryKey: moduleKeys.modules(courseId) });
+    },
+  });
+}
+
+export function useDeleteModule(courseId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (moduleId: string) => deleteModule(courseId, moduleId),
+    onSuccess: (_result, moduleId) => {
+      queryClient.removeQueries({ queryKey: moduleKeys.module(courseId, moduleId) });
+      void queryClient.invalidateQueries({ queryKey: moduleKeys.modules(courseId) });
+    },
+  });
+}
+
+export function useCreateLesson(moduleId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateLessonInput) => createLesson(moduleId, input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: moduleKeys.lessons(moduleId) });
+    },
+  });
+}
+
+export function useUpdateLesson(moduleId: string, lessonId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UpdateLessonInput) => updateLesson(moduleId, lessonId, input),
+    onSuccess: (lesson) => {
+      queryClient.setQueryData(moduleKeys.lesson(lesson.moduleId, lesson.id), lesson);
+      void queryClient.invalidateQueries({ queryKey: moduleKeys.lessons(moduleId) });
+      if (lesson.moduleId !== moduleId) {
+        void queryClient.invalidateQueries({ queryKey: moduleKeys.lessons(lesson.moduleId) });
+        queryClient.removeQueries({ queryKey: moduleKeys.lesson(moduleId, lesson.id) });
+      }
+    },
+  });
+}
+
+export function useDeleteLesson(moduleId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (lessonId: string) => deleteLesson(moduleId, lessonId),
+    onSuccess: (_result, lessonId) => {
+      queryClient.removeQueries({ queryKey: moduleKeys.lesson(moduleId, lessonId) });
+      void queryClient.invalidateQueries({ queryKey: moduleKeys.lessons(moduleId) });
+    },
   });
 }

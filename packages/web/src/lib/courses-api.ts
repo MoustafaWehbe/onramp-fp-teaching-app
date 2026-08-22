@@ -11,6 +11,8 @@ type CreateCourseResponse =
   operations["createCourse"]["responses"][201]["content"]["application/json"];
 type EnrollmentResponse =
   operations["enroll"]["responses"][201]["content"]["application/json"];
+type UpdateCourseResponse =
+  operations["updateCourse"]["responses"][200]["content"]["application/json"];
 
 /**
  * A UI-safe Course built from the generated OpenAPI schema.
@@ -32,6 +34,8 @@ export type Course = Omit<
 export type CreateCourseInput = components["schemas"]["CreateCourseBody"];
 export type Enrollment = components["schemas"]["Enrollment"];
 export type EnrollInput = components["schemas"]["EnrollBody"];
+export type UpdateCourseInput =
+  operations["updateCourse"]["requestBody"]["content"]["application/json"];
 
 const DEFAULT_ERROR_MESSAGE = "Something went wrong. Please try again.";
 
@@ -166,6 +170,17 @@ export async function getCourse(courseId: string): Promise<Course> {
 export async function createCourse(input: CreateCourseInput): Promise<Course> {
   const { data } = await apiClient.post<CreateCourseResponse>(
     "/courses",
+    input,
+  );
+  return requireCourse(data.data);
+}
+
+export async function updateCourse(
+  courseId: string,
+  input: UpdateCourseInput,
+): Promise<Course> {
+  const { data } = await apiClient.put<UpdateCourseResponse>(
+    `/courses/${encodeURIComponent(courseId)}`,
     input,
   );
   return requireCourse(data.data);

@@ -164,6 +164,16 @@ describe("CourseDetailPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows course and module management controls only to the owner", async () => {
+    setAuthenticatedUser("instructor", course.instructorId);
+    renderCourseDetail();
+    await screen.findByRole("heading", { name: course.title });
+    expect(screen.getByRole("button", { name: "Edit Course" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Add Module/i })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Edit" })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: "Delete" })).toHaveLength(2);
+  });
+
   it.each([
     ["a student", "student" as const, "student-1"],
     ["a different instructor", "instructor" as const, "instructor-2"],
@@ -174,6 +184,8 @@ describe("CourseDetailPage", () => {
 
     await screen.findByRole("heading", { name: course.title });
     expect(screen.queryByText(course.enrollmentCode!)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Edit Course" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Add Module/i })).not.toBeInTheDocument();
   });
 
   it("shows a request error and retries the course request", async () => {

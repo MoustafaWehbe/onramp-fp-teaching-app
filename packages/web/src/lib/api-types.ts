@@ -216,9 +216,11 @@ export interface paths {
         };
         /** Get a module by ID */
         get: operations["getModule"];
-        put?: never;
+        /** Update a module (owning instructor only) */
+        put: operations["updateModule"];
         post?: never;
-        delete?: never;
+        /** Delete a module (owning instructor only) */
+        delete: operations["deleteModule"];
         options?: never;
         head?: never;
         patch?: never;
@@ -251,9 +253,11 @@ export interface paths {
         };
         /** Get a lesson by ID */
         get: operations["getLesson"];
-        put?: never;
+        /** Update or move a lesson (owning instructor only) */
+        put: operations["updateLesson"];
         post?: never;
-        delete?: never;
+        /** Delete a lesson (owning instructor only) */
+        delete: operations["deleteLesson"];
         options?: never;
         head?: never;
         patch?: never;
@@ -375,6 +379,95 @@ export interface paths {
         put?: never;
         /** Ask the General Assistant a platform question (authenticated users only) */
         post: operations["askGeneralAssistant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/modules/{moduleId}/lessons/{lessonId}/resources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                moduleId: string;
+                lessonId: string;
+            };
+            cookie?: never;
+        };
+        /** List lesson PDF resources */
+        get: operations["listLessonResources"];
+        put?: never;
+        /** Upload a lesson PDF resource (owning instructor only) */
+        post: operations["uploadLessonResource"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/modules/{moduleId}/lessons/{lessonId}/resources/{resourceId}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Open or download an authorized lesson PDF */
+        get: operations["downloadLessonResource"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/modules/{moduleId}/lessons/{lessonId}/resources/{resourceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a lesson resource (owning instructor only) */
+        delete: operations["deleteLessonResource"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/modules/{moduleId}/lessons/{lessonId}/resources/{resourceId}/reindex": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry lesson resource AI indexing (owning instructor only) */
+        post: operations["reindexLessonResource"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/modules/{moduleId}/lessons/{lessonId}/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate a lesson study summary from lesson text and all lesson PDFs */
+        post: operations["generateLessonSummary"];
         delete?: never;
         options?: never;
         head?: never;
@@ -524,6 +617,12 @@ export interface components {
             /** @example 1 */
             order?: number;
         };
+        UpdateModuleBody: {
+            /** @example Frontend Module */
+            title: string;
+            /** @example 1 */
+            order: number;
+        };
         Lesson: {
             /** Format: uuid */
             id: string;
@@ -551,10 +650,54 @@ export interface components {
         CreateLessonBody: {
             /** @example HTML Basics */
             title: string;
-            content?: string;
-            videoUrl?: string;
-            starterCodeUrl?: string;
+            content?: string | null;
+            videoUrl?: string | null;
+            starterCodeUrl?: string | null;
             order?: number;
+        };
+        UpdateLessonBody: {
+            /** @example HTML Basics */
+            title: string;
+            content: string | null;
+            videoUrl: string | null;
+            starterCodeUrl: string | null;
+            order: number;
+            /**
+             * Format: uuid
+             * @description Optional destination module. It must be in the same owned course.
+             */
+            moduleId?: string;
+        };
+        LessonResource: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            lessonId: string;
+            title: string;
+            originalFileName: string;
+            /** @enum {string} */
+            mimeType: "application/pdf";
+            sizeBytes: number;
+            /** @enum {string} */
+            indexStatus: "pending" | "ready" | "failed";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        LessonSummary: {
+            /** @enum {string} */
+            type: "summary";
+            /** Format: uuid */
+            lessonId: string;
+            summary: string;
+            sources: {
+                /** @enum {string} */
+                type: "lesson" | "resource";
+                /** Format: uuid */
+                id: string;
+                title: string;
+            }[];
         };
         Milestone: {
             /** Format: uuid */
@@ -1492,6 +1635,112 @@ export interface operations {
             };
         };
     };
+    updateModule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseId: string;
+                moduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateModuleBody"];
+            };
+        };
+        responses: {
+            /** @description Module updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Module"];
+                    };
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Course ownership required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Module or course not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    deleteModule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseId: string;
+                moduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Module deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Course ownership required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Module or course not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     getLessons: {
         parameters: {
             query?: never;
@@ -1604,6 +1853,112 @@ export interface operations {
                 };
             };
             /** @description Lesson not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    updateLesson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                moduleId: string;
+                lessonId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateLessonBody"];
+            };
+        };
+        responses: {
+            /** @description Lesson updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Lesson"];
+                    };
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Course ownership and same-course move required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Lesson, source module, or destination module not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    deleteLesson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                moduleId: string;
+                lessonId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lesson deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Course ownership required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Lesson, module, or course not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -2034,6 +2389,343 @@ export interface operations {
             };
             /** @description AI service not configured */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listLessonResources: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                moduleId: string;
+                lessonId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Resource metadata only */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["LessonResource"][];
+                    };
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Lesson not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    uploadLessonResource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                moduleId: string;
+                lessonId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                    title?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Uploaded resource metadata */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["LessonResource"];
+                    };
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid PDF or resource limit reached */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    downloadLessonResource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                moduleId: string;
+                lessonId: string;
+                resourceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PDF bytes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    deleteLessonResource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                moduleId: string;
+                lessonId: string;
+                resourceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Resource deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    reindexLessonResource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                moduleId: string;
+                lessonId: string;
+                resourceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Reindexed resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["LessonResource"];
+                    };
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AI indexing unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    generateLessonSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                moduleId: string;
+                lessonId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Generated Markdown summary */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["LessonSummary"];
+                    };
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No material or supported input bound exceeded */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AI provider failure */
+            502: {
                 headers: {
                     [name: string]: unknown;
                 };

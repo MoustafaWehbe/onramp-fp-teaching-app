@@ -8,8 +8,12 @@ import {
   RefreshCw,
 } from "lucide-react";
 import ReactMarkdown, { type Components } from "react-markdown";
-import { Link, useParams } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { CourseContextAssistant } from "../../components/assistant";
+import { DeleteConfirmationDialog, LessonEditorDialog } from "../../components/content-management/ContentDialogs";
+import { LessonResourcesCard } from "../../components/lesson-resources/LessonResourcesCard";
+import { LessonSummaryCard } from "../../components/lesson-resources/LessonSummaryCard";
 import { Button, buttonVariants } from "../../components/ui/button";
 import {
   Card,
@@ -18,9 +22,10 @@ import {
   CardTitle,
 } from "../../components/ui/card";
 import { useCourse } from "../../hooks/useCourses";
-import { useLesson, useModule } from "../../hooks/useModules";
+import { useDeleteLesson, useLesson, useModule, useModules, useUpdateLesson } from "../../hooks/useModules";
 import { getApiErrorMessage } from "../../lib/courses-api";
 import { cn } from "../../lib/utils";
+import { useAuth } from "../../hooks/useAuth";
 
 function safeHttpUrl(value: string | null | undefined): string | null {
   if (!value) return null;
@@ -156,6 +161,8 @@ function LessonLoading() {
 }
 
 export function LessonDetails() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const { courseId, moduleId, lessonId } = useParams<{
     courseId: string;
     moduleId: string;
@@ -164,6 +171,11 @@ export function LessonDetails() {
   const courseQuery = useCourse(courseId);
   const moduleQuery = useModule(courseId, moduleId);
   const lessonQuery = useLesson(moduleId, lessonId);
+  const modulesQuery = useModules(courseId, user?.role === "instructor");
+  const [lessonEditorOpen, setLessonEditorOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const updateLessonMutation = useUpdateLesson(moduleId ?? "", lessonId ?? "");
+  const deleteLessonMutation = useDeleteLesson(moduleId ?? "");
   const backToModule =
     courseId && moduleId
       ? `/courses/${courseId}/modules/${moduleId}`
@@ -248,6 +260,7 @@ export function LessonDetails() {
     ? safeHttpUrl(lesson.videoUrl)
     : null;
   const starterCodeUrl = safeHttpUrl(lesson.starterCodeUrl);
+  const canManage = user?.role === "instructor" && course.instructorId === user.id;
 
   return (
     <div className="space-y-8">
@@ -270,9 +283,7 @@ export function LessonDetails() {
           <ChevronRight aria-hidden="true" className="h-3 w-3" />
           <span className="font-medium text-foreground">{lesson.title}</span>
         </div>
-        <h1 className="break-words text-3xl font-bold tracking-tight">
-          {lesson.title}
-        </h1>
+        <div className="flex flex-wrap items-start justify-between gap-3"><h1 className="break-words text-3xl font-bold tracking-tight">{lesson.title}</h1>{canManage && <div className="flex gap-2"><Button type="button" variant="outline" onClick={() => setLessonEditorOpen(true)}>Edit Lesson</Button><Button type="button" variant="destructive" onClick={() => setDeleteOpen(true)}>Delete Lesson</Button></div>}</div>
       </div>
 
       {lesson.videoUrl && externalVideoUrl && (
@@ -351,7 +362,19 @@ export function LessonDetails() {
         </Card>
       )}
 
+      <LessonResourcesCard
+        moduleId={module.id}
+        lessonId={lesson.id}
+        canManage={
+          user?.role === "instructor" && course.instructorId === user.id
+        }
+      />
+
+      <LessonSummaryCard moduleId={module.id} lessonId={lesson.id} />
+
       <CourseContextAssistant courseId={course.id} courseTitle={course.title} />
+      <LessonEditorDialog open={lessonEditorOpen} lesson={lesson} modules={modulesQuery.data ?? [module]} isSaving={updateLessonMutation.isPending} error={updateLessonMutation.error} onCancel={() => { setLessonEditorOpen(false); updateLessonMutation.reset(); }} onSave={(values) => updateLessonMutation.mutate(values, { onSuccess: (updated) => { setLessonEditorOpen(false); if (updated.moduleId !== module.id) navigate(`/courses/${course.id}/modules/${updated.moduleId}/lessons/${updated.id}`); } })} />
+      <DeleteConfirmationDialog open={deleteOpen} entityName={lesson.title} isDeleting={deleteLessonMutation.isPending} error={deleteLessonMutation.error} onCancel={() => { setDeleteOpen(false); deleteLessonMutation.reset(); }} onConfirm={() => deleteLessonMutation.mutate(lesson.id, { onSuccess: () => navigate(backToModule) })} />
     </div>
   );
 }

@@ -4,8 +4,10 @@ import {
   enrollInCourse,
   getCourse,
   getCourses,
+  updateCourse,
   type CreateCourseInput,
   type EnrollInput,
+  type UpdateCourseInput,
 } from "../lib/courses-api";
 
 export const courseKeys = {
@@ -36,6 +38,18 @@ export function useCreateCourse() {
 
   return useMutation({
     mutationFn: (input: CreateCourseInput) => createCourse(input),
+    onSuccess: (course) => {
+      queryClient.setQueryData(courseKeys.detail(course.id), course);
+      void queryClient.invalidateQueries({ queryKey: courseKeys.lists() });
+    },
+  });
+}
+
+export function useUpdateCourse(courseId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: UpdateCourseInput) => updateCourse(courseId, input),
     onSuccess: (course) => {
       queryClient.setQueryData(courseKeys.detail(course.id), course);
       void queryClient.invalidateQueries({ queryKey: courseKeys.lists() });

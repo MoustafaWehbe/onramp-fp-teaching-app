@@ -5,8 +5,10 @@ import {
   Layers3,
   RefreshCw,
 } from "lucide-react";
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { CourseContextAssistant } from "../../components/assistant";
+import { CourseEditorDialog, DeleteConfirmationDialog, ModuleEditorDialog } from "../../components/content-management/ContentDialogs";
 import { QueryListSection } from "../../components/shared/QueryListSection";
 import { Badge } from "../../components/ui/badge";
 import { Button, buttonVariants } from "../../components/ui/button";
@@ -16,9 +18,10 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
-import { useCourse } from "../../hooks/useCourses";
+import { useCourse, useUpdateCourse } from "../../hooks/useCourses";
 import { useAuth } from "../../hooks/useAuth";
-import { useModules } from "../../hooks/useModules";
+import { useCreateModule, useDeleteModule, useModules, useUpdateModule } from "../../hooks/useModules";
+import type { Module } from "../../lib/modules-api";
 import { getApiErrorMessage } from "../../lib/courses-api";
 
 function CourseDetailLoading() {
@@ -42,6 +45,13 @@ export function CourseDetailPage() {
   const { user } = useAuth();
   const courseQuery = useCourse(id);
   const modulesQuery = useModules(id);
+  const [courseEditorOpen, setCourseEditorOpen] = useState(false);
+  const [moduleEditor, setModuleEditor] = useState<Module | null | undefined>(undefined);
+  const [moduleToDelete, setModuleToDelete] = useState<Module | null>(null);
+  const updateCourseMutation = useUpdateCourse(id ?? "");
+  const createModuleMutation = useCreateModule(id ?? "");
+  const deleteModuleMutation = useDeleteModule(id ?? "");
+  const updateModuleMutation = useUpdateModule(id ?? "", moduleEditor?.id ?? "");
 
   if (!id) {
     return (
@@ -95,6 +105,11 @@ export function CourseDetailPage() {
   const course = courseQuery.data;
   const canSeeEnrollmentCode =
     user?.role === "instructor" && user.id === course.instructorId;
+  const closeModuleEditor = () => {
+    setModuleEditor(undefined);
+    createModuleMutation.reset();
+    updateModuleMutation.reset();
+  };
 
   return (
     <div className="space-y-8">
@@ -111,9 +126,12 @@ export function CourseDetailPage() {
           <h1 className="min-w-0 break-words text-3xl font-bold tracking-tight">
             {course.title}
           </h1>
-          <Badge variant={course.isPublished ? "secondary" : "outline"}>
-            {course.isPublished ? "Published" : "Draft"}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant={course.isPublished ? "secondary" : "outline"}>
+              {course.isPublished ? "Published" : "Draft"}
+            </Badge>
+            {canSeeEnrollmentCode && <Button type="button" variant="outline" onClick={() => setCourseEditorOpen(true)}>Edit Course</Button>}
+          </div>
         </div>
         <p className="max-w-3xl text-base leading-7 text-muted-foreground">
           {course.description ||
@@ -138,9 +156,10 @@ export function CourseDetailPage() {
       )}
 
       <section aria-labelledby="modules-heading" className="space-y-4">
-        <h2 id="modules-heading" className="text-xl font-semibold">
-          Modules
-        </h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 id="modules-heading" className="text-xl font-semibold">Modules</h2>
+          {canSeeEnrollmentCode && <Button type="button" onClick={() => setModuleEditor(null)}>+ Add Module</Button>}
+        </div>
         <QueryListSection
           data={modulesQuery.data}
           isPending={modulesQuery.isPending}
@@ -167,13 +186,10 @@ export function CourseDetailPage() {
                         {module.title}
                       </h3>
                     </div>
-                    <Link
-                      to={`/courses/${course.id}/modules/${module.id}`}
-                      className={buttonVariants({ variant: "outline" })}
-                    >
-                      Open Module
-                      <ChevronRight className="ml-2 h-4 w-4" />
-                    </Link>
+                    <div className="flex flex-wrap gap-2">
+                      <Link to={`/courses/${course.id}/modules/${module.id}`} className={buttonVariants({ variant: "outline" })}>Open Module<ChevronRight className="ml-2 h-4 w-4" /></Link>
+                      {canSeeEnrollmentCode && <><Button type="button" variant="outline" onClick={() => setModuleEditor(module)}>Edit</Button><Button type="button" variant="destructive" onClick={() => setModuleToDelete(module)}>Delete</Button></>}
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -183,6 +199,9 @@ export function CourseDetailPage() {
       </section>
 
       <CourseContextAssistant courseId={course.id} courseTitle={course.title} />
+      <CourseEditorDialog open={courseEditorOpen} course={course} isSaving={updateCourseMutation.isPending} error={updateCourseMutation.error} onCancel={() => { setCourseEditorOpen(false); updateCourseMutation.reset(); }} onSave={(values) => updateCourseMutation.mutate(values, { onSuccess: () => setCourseEditorOpen(false) })} />
+      <ModuleEditorDialog open={moduleEditor !== undefined} module={moduleEditor ?? undefined} isSaving={createModuleMutation.isPending || updateModuleMutation.isPending} error={moduleEditor ? updateModuleMutation.error : createModuleMutation.error} onCancel={closeModuleEditor} onSave={(values) => { if (moduleEditor) updateModuleMutation.mutate(values, { onSuccess: closeModuleEditor }); else createModuleMutation.mutate(values, { onSuccess: closeModuleEditor }); }} />
+      <DeleteConfirmationDialog open={Boolean(moduleToDelete)} entityName={moduleToDelete?.title ?? "module"} isDeleting={deleteModuleMutation.isPending} error={deleteModuleMutation.error} onCancel={() => { setModuleToDelete(null); deleteModuleMutation.reset(); }} onConfirm={() => { if (moduleToDelete) deleteModuleMutation.mutate(moduleToDelete.id, { onSuccess: () => setModuleToDelete(null) }); }} />
     </div>
   );
 }
