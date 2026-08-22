@@ -1,8 +1,12 @@
 import type { Request, Response, NextFunction } from "express";
 import { Course } from "@starter-kit/shared/db/models/Course";
-import { Enrollment } from "@starter-kit/shared/db/models/Enrollment";
 import { Lesson } from "@starter-kit/shared/db/models/Lesson";
 import { Module } from "@starter-kit/shared/db/models/Module";
+import {
+  canAccessCourseContent,
+  loadLessonCourse,
+  ownsCourse,
+} from "../services/course-content-access.service";
 
 export interface LessonAccessContext {
   lesson: Lesson;
@@ -34,57 +38,24 @@ export function requireLessonAccess(write = false) {
 
       const moduleId = req.params.moduleId as string;
       const lessonId = req.params.lessonId as string;
-      const lesson = await Lesson.findOne({
-        where: { id: lessonId, moduleId },
-      });
-      if (!lesson) {
+      const context = await loadLessonCourse(lessonId, moduleId);
+      if (!context) {
         res.status(404).json({ error: "Lesson not found" });
         return;
       }
-
-      const module = await Module.findByPk(moduleId);
-      if (!module) {
-        res.status(404).json({ error: "Lesson not found" });
-        return;
-      }
-      const course = await Course.findByPk(module.courseId);
-      if (!course) {
-        res.status(404).json({ error: "Lesson not found" });
+      if (!(await canAccessCourseContent(context.course, user, write))) {
+        res
+          .status(403)
+          .json({ error: "You do not have access to this lesson" });
         return;
       }
 
-      const ownsCourse =
-        user.role === "instructor" && course.instructorId === user.userId;
-      if (write) {
-        if (!ownsCourse) {
-          res
-            .status(403)
-            .json({ error: "You do not have access to this lesson" });
-          return;
-        }
-      } else if (user.role === "instructor") {
-        if (!ownsCourse) {
-          res
-            .status(403)
-            .json({ error: "You do not have access to this lesson" });
-          return;
-        }
-      } else {
-        const enrollment = course.isPublished
-          ? await Enrollment.findOne({
-              where: { courseId: course.id, studentId: user.userId },
-              attributes: ["id"],
-            })
-          : null;
-        if (!course.isPublished || !enrollment) {
-          res
-            .status(403)
-            .json({ error: "You do not have access to this lesson" });
-          return;
-        }
-      }
-
-      req.lessonAccess = { lesson, module, course, canWrite: ownsCourse };
+      req.lessonAccess = {
+        lesson: context.lesson,
+        module: context.module,
+        course: context.course,
+        canWrite: ownsCourse(context.course, user),
+      };
       next();
     } catch (error) {
       next(error);

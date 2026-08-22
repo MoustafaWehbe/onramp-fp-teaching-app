@@ -2,6 +2,12 @@ import type { Request, Response, NextFunction } from "express";
 import { MilestoneLesson } from "@starter-kit/shared/db/models/MilestoneLesson";
 import { Milestone } from "@starter-kit/shared/db/models/Milestone";
 import { Lesson } from "@starter-kit/shared/db/models/Lesson";
+import { Module } from "@starter-kit/shared/db/models/Module";
+import {
+  canAccessCourseContent,
+  loadLessonCourse,
+  loadMilestoneCourse,
+} from "../services/course-content-access.service";
 
 function getParam(value: string | string[]): string {
   return Array.isArray(value) ? value[0] : value;
@@ -16,16 +22,35 @@ export const milestoneLessonController = {
     try {
       const milestoneId = getParam(req.params.milestoneId);
 
-      const milestone = await Milestone.findByPk(milestoneId, {
-        include: [{ model: Lesson, as: "lessons" }],
-      });
-
-      if (!milestone) {
+      const context = await loadMilestoneCourse(milestoneId);
+      if (!context) {
         res.status(404).json({ error: "Milestone not found" });
         return;
       }
+      if (!(await canAccessCourseContent(context.course, req.user!))) {
+        res.status(403).json({ error: "Forbidden" });
+        return;
+      }
 
-      res.json({ data: (milestone as any).lessons });
+      const milestone = await Milestone.findByPk(milestoneId, {
+        include: [
+          {
+            model: Lesson,
+            as: "lessons",
+            include: [
+              {
+                model: Module,
+                as: "module",
+                required: true,
+                where: { courseId: context.course.id },
+                attributes: [],
+              },
+            ],
+          },
+        ],
+      });
+
+      res.json({ data: (milestone as any)?.lessons ?? [] });
     } catch (err) {
       next(err);
     }
@@ -45,17 +70,31 @@ export const milestoneLessonController = {
         return;
       }
 
-      const milestone = await Milestone.findByPk(milestoneId);
-
-      if (!milestone) {
+      const milestoneContext = await loadMilestoneCourse(milestoneId);
+      if (!milestoneContext) {
         res.status(404).json({ error: "Milestone not found" });
         return;
       }
+      if (
+        !(await canAccessCourseContent(
+          milestoneContext.course,
+          req.user!,
+          true,
+        ))
+      ) {
+        res.status(403).json({ error: "Forbidden" });
+        return;
+      }
 
-      const lesson = await Lesson.findByPk(lessonId as string);
-
-      if (!lesson) {
+      const lessonContext = await loadLessonCourse(lessonId as string);
+      if (!lessonContext) {
         res.status(404).json({ error: "Lesson not found" });
+        return;
+      }
+      if (lessonContext.course.id !== milestoneContext.course.id) {
+        res.status(403).json({
+          error: "Lessons and milestones must belong to the same course",
+        });
         return;
       }
 
@@ -89,6 +128,33 @@ export const milestoneLessonController = {
     try {
       const milestoneId = getParam(req.params.milestoneId);
       const lessonId = getParam(req.params.lessonId);
+
+      const milestoneContext = await loadMilestoneCourse(milestoneId);
+      if (!milestoneContext) {
+        res.status(404).json({ error: "Milestone not found" });
+        return;
+      }
+      if (
+        !(await canAccessCourseContent(
+          milestoneContext.course,
+          req.user!,
+          true,
+        ))
+      ) {
+        res.status(403).json({ error: "Forbidden" });
+        return;
+      }
+      const lessonContext = await loadLessonCourse(lessonId);
+      if (!lessonContext) {
+        res.status(404).json({ error: "Lesson not found" });
+        return;
+      }
+      if (lessonContext.course.id !== milestoneContext.course.id) {
+        res.status(403).json({
+          error: "Lessons and milestones must belong to the same course",
+        });
+        return;
+      }
 
       const milestoneLesson = await MilestoneLesson.findOne({
         where: { milestoneId, lessonId },

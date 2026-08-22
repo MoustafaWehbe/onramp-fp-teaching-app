@@ -1,11 +1,16 @@
 import xss from "xss";
 import type { Request, Response, NextFunction } from "express";
+import { UniqueConstraintError } from "sequelize";
 import { Submission } from "@starter-kit/shared/db/models/Submission";
 import { SubmissionLink } from "@starter-kit/shared/db/models/SubmissionLink";
 import { Milestone } from "@starter-kit/shared/db/models/Milestone";
 import { Module } from "@starter-kit/shared/db/models/Module";
 import { Course } from "@starter-kit/shared/db/models/Course";
 import { User } from "@starter-kit/shared/db/models/User";
+import {
+  canAccessCourseContent,
+  loadMilestoneCourse,
+} from "../services/course-content-access.service";
 
 const URL_PATTERNS: Record<string, RegExp> = {
   github: /^https?:\/\/(?:www\.)?github\.com\/.+/,
@@ -52,21 +57,19 @@ export const submissionController = {
       const milestoneId = getParam(req.params.milestoneId);
       const userId = req.user!.userId;
       const role = req.user!.role;
+      const milestoneContext = await loadMilestoneCourse(milestoneId);
+      if (!milestoneContext) {
+        res.status(404).json({ error: "Milestone not found" });
+        return;
+      }
+      if (!(await canAccessCourseContent(milestoneContext.course, req.user!))) {
+        res.status(403).json({ error: "Forbidden" });
+        return;
+      }
 
       let submissions;
 
       if (role === "instructor") {
-        const ownedMilestone = await Milestone.findOne({
-          where: { id: milestoneId },
-          attributes: ["id"],
-          include: ownedModuleInclude(userId),
-        });
-
-        if (!ownedMilestone) {
-          res.status(403).json({ error: "Forbidden" });
-          return;
-        }
-
         submissions = await Submission.findAll({
           where: { milestoneId },
           include: [
@@ -120,10 +123,24 @@ export const submissionController = {
         }
       }
 
-      const milestone = await Milestone.findByPk(milestoneId);
-
-      if (!milestone) {
+      const milestoneContext = await loadMilestoneCourse(milestoneId);
+      if (!milestoneContext) {
         res.status(404).json({ error: "Milestone not found" });
+        return;
+      }
+      if (!(await canAccessCourseContent(milestoneContext.course, req.user!))) {
+        res.status(403).json({ error: "Course enrollment required" });
+        return;
+      }
+
+      const existingSubmission = await Submission.findOne({
+        where: { milestoneId, studentId },
+        attributes: ["id"],
+      });
+      if (existingSubmission) {
+        res.status(409).json({
+          error: "You have already submitted work for this milestone",
+        });
         return;
       }
 
@@ -167,6 +184,15 @@ export const submissionController = {
         },
       });
     } catch (err) {
+      if (
+        err instanceof UniqueConstraintError ||
+        (err instanceof Error && err.name === "SequelizeUniqueConstraintError")
+      ) {
+        res.status(409).json({
+          error: "You have already submitted work for this milestone",
+        });
+        return;
+      }
       next(err);
     }
   },

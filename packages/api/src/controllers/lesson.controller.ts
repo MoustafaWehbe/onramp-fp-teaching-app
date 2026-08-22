@@ -1,29 +1,30 @@
 import type { Request, Response, NextFunction } from "express";
+import type { JwtPayload } from "@starter-kit/shared/auth";
 import { Lesson } from "@starter-kit/shared/db/models/Lesson";
 import { Module } from "@starter-kit/shared/db/models/Module";
-import { Course } from "@starter-kit/shared/db/models/Course";
 import { KnowledgeChunk } from "@starter-kit/shared/db/models/KnowledgeChunk";
+import {
+  canAccessCourseContent,
+  loadLessonCourse,
+  loadModuleCourse,
+} from "../services/course-content-access.service";
 
-async function requireOwnedModule(
+async function requireModuleAccess(
   moduleId: string,
-  instructorId: string,
+  user: JwtPayload,
   res: Response,
+  write = false,
 ): Promise<Module | undefined> {
-  const module = await Module.findByPk(moduleId);
-  if (!module) {
+  const context = await loadModuleCourse(moduleId);
+  if (!context) {
     res.status(404).json({ error: "Module not found" });
     return undefined;
   }
-  const course = await Course.findByPk(module.courseId);
-  if (!course) {
-    res.status(404).json({ error: "Course not found" });
-    return undefined;
-  }
-  if (course.instructorId !== instructorId) {
+  if (!(await canAccessCourseContent(context.course, user, write))) {
     res.status(403).json({ error: "Forbidden" });
     return undefined;
   }
-  return module;
+  return context.module;
 }
 
 export const lessonController = {
@@ -33,8 +34,14 @@ export const lessonController = {
     next: NextFunction,
   ): Promise<void> {
     try {
+      const module = await requireModuleAccess(
+        req.params.moduleId as string,
+        req.user!,
+        res,
+      );
+      if (!module) return;
       const lessons = await Lesson.findAll({
-        where: { moduleId: req.params.moduleId as string },
+        where: { moduleId: module.id },
         order: [["order", "ASC"]],
       });
       res.json({ data: lessons });
@@ -49,14 +56,19 @@ export const lessonController = {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const lesson = await Lesson.findOne({
-        where: { id: req.params.id, moduleId: req.params.moduleId as string },
-      });
-      if (!lesson) {
+      const context = await loadLessonCourse(
+        req.params.id as string,
+        req.params.moduleId as string,
+      );
+      if (!context) {
         res.status(404).json({ error: "Lesson not found" });
         return;
       }
-      res.json({ data: lesson });
+      if (!(await canAccessCourseContent(context.course, req.user!))) {
+        res.status(403).json({ error: "Forbidden" });
+        return;
+      }
+      res.json({ data: context.lesson });
     } catch (err) {
       next(err);
     }
@@ -68,10 +80,11 @@ export const lessonController = {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const module = await requireOwnedModule(
+      const module = await requireModuleAccess(
         req.params.moduleId as string,
-        req.user!.userId,
+        req.user!,
         res,
+        true,
       );
       if (!module) return;
 
@@ -95,29 +108,33 @@ export const lessonController = {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const lesson = await Lesson.findOne({
-        where: { id: req.params.id, moduleId: req.params.moduleId as string },
-      });
-      if (!lesson) {
+      const context = await loadLessonCourse(
+        req.params.id as string,
+        req.params.moduleId as string,
+      );
+      if (!context) {
         res.status(404).json({ error: "Lesson not found" });
         return;
       }
-      const sourceModule = await requireOwnedModule(
-        lesson.moduleId,
-        req.user!.userId,
-        res,
-      );
-      if (!sourceModule) return;
+      if (!(await canAccessCourseContent(context.course, req.user!, true))) {
+        res.status(403).json({ error: "Forbidden" });
+        return;
+      }
+      const { lesson, module: sourceModule } = context;
 
       const requestedModuleId =
-        typeof req.body.moduleId === "string" ? req.body.moduleId : lesson.moduleId;
+        typeof req.body.moduleId === "string"
+          ? req.body.moduleId
+          : lesson.moduleId;
       const destinationModule = await Module.findByPk(requestedModuleId);
       if (!destinationModule) {
         res.status(404).json({ error: "Destination module not found" });
         return;
       }
       if (destinationModule.courseId !== sourceModule.courseId) {
-        res.status(403).json({ error: "Lessons can only move within their course" });
+        res
+          .status(403)
+          .json({ error: "Lessons can only move within their course" });
         return;
       }
       const sequelize = Lesson.sequelize;
@@ -153,20 +170,19 @@ export const lessonController = {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const lesson = await Lesson.findOne({
-        where: { id: req.params.id, moduleId: req.params.moduleId as string },
-      });
-      if (!lesson) {
+      const context = await loadLessonCourse(
+        req.params.id as string,
+        req.params.moduleId as string,
+      );
+      if (!context) {
         res.status(404).json({ error: "Lesson not found" });
         return;
       }
-      const module = await requireOwnedModule(
-        lesson.moduleId,
-        req.user!.userId,
-        res,
-      );
-      if (!module) return;
-      await lesson.destroy();
+      if (!(await canAccessCourseContent(context.course, req.user!, true))) {
+        res.status(403).json({ error: "Forbidden" });
+        return;
+      }
+      await context.lesson.destroy();
       res.json({ data: { message: "Lesson deleted successfully" } });
     } catch (err) {
       next(err);

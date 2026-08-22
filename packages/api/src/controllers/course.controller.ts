@@ -3,6 +3,21 @@ import type { Request, Response, NextFunction } from "express";
 import { Course } from "@starter-kit/shared/db/models/Course";
 import { randomBytes } from "crypto";
 
+function courseResponse(course: Course, includeEnrollmentCode: boolean) {
+  const response = {
+    id: course.id,
+    instructorId: course.instructorId,
+    title: course.title,
+    description: course.description,
+    isPublished: course.isPublished,
+    createdAt: course.createdAt,
+    updatedAt: course.updatedAt,
+  };
+  return includeEnrollmentCode
+    ? { ...response, enrollmentCode: course.enrollmentCode }
+    : response;
+}
+
 export const courseController = {
   async getCourses(
     req: Request,
@@ -25,11 +40,15 @@ export const courseController = {
         });
         const courseIds = enrollments.map((e: any) => e.courseId);
         courses = await Course.findAll({
-          where: { id: courseIds },
+          where: { id: courseIds, isPublished: true },
         });
       }
 
-      res.json({ data: courses });
+      res.json({
+        data: courses.map((course) =>
+          courseResponse(course, role === "instructor"),
+        ),
+      });
     } catch (err) {
       next(err);
     }
@@ -53,7 +72,13 @@ export const courseController = {
         return;
       }
 
-      res.json({ data: course });
+      res.json({
+        data: courseResponse(
+          course,
+          req.user!.role === "instructor" &&
+            course.instructorId === req.user!.userId,
+        ),
+      });
     } catch (err) {
       next(err);
     }
@@ -84,7 +109,7 @@ export const courseController = {
         enrollmentCode,
       });
 
-      res.status(201).json({ data: course });
+      res.status(201).json({ data: courseResponse(course, true) });
     } catch (err) {
       next(err);
     }
@@ -114,7 +139,7 @@ export const courseController = {
         isPublished: req.body.isPublished,
       });
 
-      res.json({ data: course });
+      res.json({ data: courseResponse(course, true) });
     } catch (err) {
       next(err);
     }

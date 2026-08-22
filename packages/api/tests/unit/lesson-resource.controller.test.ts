@@ -1,4 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
+import type { Transaction } from "sequelize";
+import { Lesson } from "@starter-kit/shared/db/models/Lesson";
 import { LessonResource } from "@starter-kit/shared/db/models/LessonResource";
 import { lessonResourceController } from "../../src/controllers/lesson-resource.controller";
 import { indexLessonResource } from "../../src/services/ai/rag/lesson-resource-indexing.service";
@@ -64,7 +66,10 @@ describe("lesson resource controller", () => {
     extractMock.mockResolvedValue("PDF text");
     indexMock.mockResolvedValue({} as never);
   });
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => {
+    jest.restoreAllMocks();
+    Reflect.deleteProperty(LessonResource, "sequelize");
+  });
 
   it("returns metadata without file bytes or extracted text", async () => {
     jest.spyOn(LessonResource, "findAll").mockResolvedValue([resource()]);
@@ -89,8 +94,50 @@ describe("lesson resource controller", () => {
     expect(next).not.toHaveBeenCalled();
   });
 
+  it("does not store or index a PDF when extracted text exceeds the bound", async () => {
+    const extractionError = Object.assign(
+      new Error("PDF text must be 500,000 characters or fewer"),
+      { statusCode: 422 },
+    );
+    extractMock.mockRejectedValueOnce(extractionError);
+    const create = jest.spyOn(LessonResource, "create");
+    const next = jest.fn();
+    const file = {
+      fieldname: "file",
+      originalname: "huge.pdf",
+      mimetype: "application/pdf",
+      size: 9,
+      buffer: Buffer.from("%PDF-test"),
+    } as Express.Multer.File;
+
+    await lessonResourceController.upload(
+      req({ file } as Partial<Request>),
+      response(),
+      next,
+    );
+
+    expect(next).toHaveBeenCalledWith(extractionError);
+    expect(create).not.toHaveBeenCalled();
+    expect(indexMock).not.toHaveBeenCalled();
+  });
+
   it("keeps a valid uploaded PDF and marks failed when indexing is unavailable", async () => {
     const stored = resource();
+    const transaction = {
+      LOCK: { UPDATE: "UPDATE" },
+    } as unknown as Transaction;
+    Object.defineProperty(LessonResource, "sequelize", {
+      configurable: true,
+      value: {
+        transaction: async (
+          callback: (transaction: Transaction) => Promise<unknown>,
+        ) => callback(transaction),
+      },
+    });
+    jest
+      .spyOn(Lesson, "findByPk")
+      .mockResolvedValue({ id: "lesson-1" } as Lesson);
+    jest.spyOn(LessonResource, "count").mockResolvedValue(0);
     jest.spyOn(LessonResource, "create").mockResolvedValue(stored);
     indexMock.mockRejectedValueOnce(new Error("embedding unavailable"));
     const file = {
@@ -112,7 +159,16 @@ describe("lesson resource controller", () => {
         fileData: file.buffer,
         extractedText: "PDF text",
       }),
+      { transaction },
     );
+    expect(Lesson.findByPk).toHaveBeenCalledWith("lesson-1", {
+      transaction,
+      lock: "UPDATE",
+    });
+    expect(LessonResource.count).toHaveBeenCalledWith({
+      where: { lessonId: "lesson-1" },
+      transaction,
+    });
     expect(stored.update).toHaveBeenCalledWith({ indexStatus: "failed" });
     expect(res.status).toHaveBeenCalledWith(201);
     expect((res.json as jest.Mock).mock.calls[0]![0].data.indexStatus).toBe(
@@ -134,30 +190,42 @@ describe("lesson resource controller", () => {
   });
 
   it("streams authorized PDF bytes with a safe inline filename", async () => {
-    jest
-      .spyOn(LessonResource, "scope")
-      .mockReturnValue({
-        findOne: jest.fn(async () =>
-          resource({
-            originalFileName: '../bad"name.pdf',
-          } as Partial<LessonResource>),
-        ),
-      } as never);
+    jest.spyOn(LessonResource, "scope").mockReturnValue({
+      findOne: jest.fn(async () =>
+        resource({
+          originalFileName: '../bad"name.pdf',
+        } as Partial<LessonResource>),
+      ),
+    } as never);
     const res = response();
     await lessonResourceController.download(req(), res, jest.fn());
     expect(res.setHeader).toHaveBeenCalledWith(
       "Content-Type",
       "application/pdf",
     );
-    expect(res.setHeader).toHaveBeenCalledWith("Content-Disposition", 'inline; filename="bad_name.pdf"; filename*=UTF-8\'\'bad_name.pdf');
+    expect(res.setHeader).toHaveBeenCalledWith(
+      "Content-Disposition",
+      "inline; filename=\"bad_name.pdf\"; filename*=UTF-8''bad_name.pdf",
+    );
     expect(res.send).toHaveBeenCalledWith(Buffer.from("%PDF-test"));
   });
 
   it("uses an ASCII fallback and RFC 6266 Unicode filename", async () => {
-    jest.spyOn(LessonResource, "scope").mockReturnValue({ findOne: jest.fn(async () => resource({ originalFileName: "講義.pdf" } as Partial<LessonResource>)) } as never);
+    jest
+      .spyOn(LessonResource, "scope")
+      .mockReturnValue({
+        findOne: jest.fn(async () =>
+          resource({ originalFileName: "講義.pdf" } as Partial<LessonResource>),
+        ),
+      } as never);
     const res = response();
     await lessonResourceController.download(req(), res, jest.fn());
-    expect(res.setHeader).toHaveBeenCalledWith("Content-Disposition", expect.stringMatching(/^inline; filename="__\.pdf"; filename\*=UTF-8''%E8%AC%9B%E7%BE%A9\.pdf$/u));
+    expect(res.setHeader).toHaveBeenCalledWith(
+      "Content-Disposition",
+      expect.stringMatching(
+        /^inline; filename="__\.pdf"; filename\*=UTF-8''%E8%AC%9B%E7%BE%A9\.pdf$/u,
+      ),
+    );
     expect(res.send).toHaveBeenCalled();
   });
 });
